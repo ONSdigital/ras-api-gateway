@@ -7,7 +7,7 @@
 ##############################################################################
 from twisted.web import proxy, http
 from logging import INFO
-from .request_factory import ProxyRequest
+from .factory_request import ProxyRequest
 from .proxy_tools import ProxyTools
 
 

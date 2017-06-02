@@ -19,14 +19,14 @@ class Proxy(proxy.Proxy):
 class ProxyFactory(http.HTTPFactory, ProxyTools):
     protocol = Proxy
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.syslog(INFO, '* initialise ProxyFactory *')
+    #def __init__(self, *args, **kwargs):
+    #    super().__init__(*args, **kwargs)
+        #self.syslog(INFO, '* initialise ProxyFactory *')
 
-    def startFactory(self):
-        self.syslog(INFO, '* start ProxyFactory *')
+    #def startFactory(self):
+        #self.syslog(INFO, '* start ProxyFactory *')
 
-    def stopFactory(self):
-        self.syslog(INFO, '* stop ProxyFactory *')
+    #def stopFactory(self):
+        #self.syslog(INFO, '* stop ProxyFactory *')
 
 

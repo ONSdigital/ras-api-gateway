@@ -31,6 +31,7 @@ class CfServices:
 
 
 class ONSEnvironment(object):
+
     def __init__(self):
         """
         Nothing actually happens at this point, we're just setting up variables
@@ -38,6 +39,7 @@ class ONSEnvironment(object):
         setup of other components.
         """
         self._port = 0
+        self._base = 'None'
         self._crypto_key = None
         self._ons_cipher = None
         self._config = ConfigParser()
@@ -105,6 +107,7 @@ class ONSEnvironment(object):
             code = load(io)
         if len(code['host'].split(':')) > 1:
             self._port = code['host'].split(':')[1]
+        self._base = code.get('base', None)
 
         cf_app_env = getenv('VCAP_APPLICATION')
         if cf_app_env is not None:
@@ -167,6 +170,9 @@ class ONSEnvironment(object):
     def cipher(self):
         return self._ons_cipher
 
+    @property
+    def uri_prefix(self):
+        return self._base
 
 ons_env = ONSEnvironment()
 logger = ons_env.logger

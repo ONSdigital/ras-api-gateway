@@ -23,17 +23,17 @@ class ProxyRequest(proxy.ProxyRequest, ProxyTools):
         headers = self.getAllHeaders().copy()
         self.content.seek(0, 0)
         data = self.content.read()
-        route = router.route(self.uri)
-        headers[b'host'] = route.host.encode()
+        route = router.route(self.uri.decode())
         if route:
+            headers[b'host'] = route.host.encode()
             class_ = self.protocols[route.proto]
-            client_factory = class_(self.method, route.url, self.clientproto, headers, data, self)
+            client_factory = class_(self.method, self.uri, self.clientproto, headers, data, self)
             if route.ssl:
                 reactor.connectSSL(route.host, route.port, client_factory, ssl.CertificateOptions())
             else:
                 reactor.connectTCP(route.host, route.port, client_factory)
         else:
-            self.syslog(ERROR, 'no such API endpoint "{}"'.format(self.uri))
+            self.syslog('no such API endpoint "{}"'.format(self.uri.decode()))
             self.setResponseCode(500, b'no such API endpoint')
             self.finish()
 

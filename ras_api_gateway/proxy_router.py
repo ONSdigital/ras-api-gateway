@@ -5,16 +5,19 @@
 #   Copyright (c) 2017 Crown Copyright (Office for National Statistics)      #
 #                                                                            #
 ##############################################################################
-from twisted.internet import ssl
+from .proxy_tools import ProxyTools
+from json import loads, dumps, decoder
 
 class Route(object):
 
-    def __init__(self, proto, host, port, ssl, uri):
+    def __init__(self, proto, host, port, uri):
         self._proto = proto
         self._host = host
         self._port = port
-        self._ssl = ssl
         self._uri = uri
+
+    def txt(self):
+        return '{}://{}:{}{}'.format(self._proto, self._host, self._port, self._uri)
 
     @property
     def proto(self):
@@ -26,39 +29,75 @@ class Route(object):
 
     @property
     def port(self):
-        return self._port
-
-    @property
-    def ssl(self):
-        return self._ssl
+        return int(self._port)
 
     @property
     def uri(self):
         return self._uri.encode()
 
     @property
-    def url(self):
-        return "{}://{}:{}{}".format(self._proto, self._host, self._port, self._uri).encode()
+    def ssl(self):
+        return self._proto == 'https'
 
 
-class Router(object):
+class Router(ProxyTools):
 
     def __init__(self):
-
         self.routing_table = {}
-        self.add(Route('https', 'linux.co.uk', 443, True, '/documentation/'))
-        self.add(Route('http', 'linux.co.uk', 80, False, '/category/blogs'))
-        self.add(Route('http', 'linux.co.uk', 80, False, '/category/distros'))
-        self.add(Route('http', 'linux.co.uk', 80, False, '/mushrooms'))
-        self.add(Route('https', 'ras-collection-instrument.apps.mvp.onsclofo.uk', 443, True, '/collection-instrument-api/1.0.2/ui/'))
-        self.add(Route('https', 'ras-collection-instrument.apps.mvp.onsclofo.uk', 443, True, '/'))
-        #self.add(Route('http', 'localhost', 8082, False, '/collection-instrument-api/1.0.2/ui/'))
+
+    def setup(self):
+        for endpoint in ['register', 'unregister', 'status', 'ui', 'ui/css', 'ui/lib', 'ui/images', 'swagger.json']:
+            self.register(dumps({
+                'protocol': 'http',
+                'host': 'localhost',
+                'port': '8080',
+                'uri': '/api/1.0.0/'+endpoint
+            }))
+
+    def register(self, details):
+        try:
+            details = loads(details)
+        except decoder.JSONDecodeError:
+            return 500, {'text': 'parameter is bad JSON'}
+
+        if type(details) != dict:
+            return 500, {'text': 'bad parameters, not JSON'}
+        for attribute in ['protocol', 'host', 'port', 'uri']:
+            if attribute not in details:
+                return 500, {'text': "attribute '{}' is missing".format(attribute)}
+
+        self.add(Route(
+            details['protocol'],
+            details['host'],
+            int(details['port']),
+            details['uri']
+        ))
+        print('registered "{uri}"'.format(**details))
+        return 200, {'text': 'endpoint registered successfully'}
 
     def add(self, route):
         self.routing_table[route.uri.decode()] = route
 
     def route(self, uri):
-        return self.routing_table.get(uri.decode().split('?')[0], None)
+        #self.syslog('evaluating: {}'.format(uri))
+        if '?' in uri:
+            uri, qs = uri.split('?')
+        #self.syslog('uri: {}'.format(uri))
+        if uri not in self.routing_table:
+            if uri[-1] == '/':
+                uri = uri[:-1]
+            else:
+                pos = uri.rindex('/')
+                uri = uri[:pos]
+
+        #self.syslog("URI2={}".format(uri))
+        return self.routing_table.get(uri, None)
+
+    def status(self):
+        routes = []
+        for _, route in self.routing_table.items():
+            routes.append(route.txt())
+        return 200, routes
 
 
 router = Router()

@@ -11,7 +11,7 @@ from twisted.python import log
 
 class ProxyTools(object):
 
-    def syslog(self, lvl, msg):
+    def syslog(self, msg):
         """
         Report an issue to the external logging infrastructure
         :param lvl: The log level we're outputting to
@@ -20,5 +20,5 @@ class ProxyTools(object):
         """
         line = _getframe(1).f_lineno
         name = _getframe(1).f_code.co_name
-        log.msg("{}: #{} - {}".format(name, line, msg), logLevel=lvl)
+        log.msg("{}: #{} - {}".format(name, line, msg))
         return False

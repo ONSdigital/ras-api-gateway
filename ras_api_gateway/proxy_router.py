@@ -38,7 +38,7 @@ class Route(object):
 
     @property
     def url(self):
-        return "{}://{}:{}{}".format(self._proto, self._host, self._port, self._uri)
+        return "{}://{}:{}{}".format(self._proto, self._host, self._port, self._uri).encode()
 
 
 class Router(object):

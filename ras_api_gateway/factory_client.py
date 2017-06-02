@@ -10,8 +10,10 @@ from .proxy_tools import ProxyTools
 from logging import DEBUG, INFO, WARN
 from twisted.internet.error import ConnectionDone
 
-#class ProxyClient(proxy.ProxyClient):
-#    """ Only needed so we can overwrite the response handler (end) """
+class ProxyClient(proxy.ProxyClient):
+    """ Only needed so we can overwrite the response handler (end) """
+
+
 #    def handleResponseEnd(self):
 #        """ It someone chopped the link before, don't finish() """
 #        if not self._finished:

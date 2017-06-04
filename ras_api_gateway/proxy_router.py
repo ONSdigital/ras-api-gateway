@@ -46,7 +46,7 @@ class Router(ProxyTools):
         self.routing_table = {}
 
     def setup(self):
-        for endpoint in ['register', 'unregister', 'status', 'ui', 'ui/css', 'ui/lib', 'ui/images', 'swagger.json']:
+        for endpoint in ['register', 'unregister', 'status', 'ui/', 'ui/css', 'ui/lib', 'ui/images', 'swagger.json']:
             self.register(dumps({
                 'protocol': 'http',
                 'host': 'localhost',
@@ -79,25 +79,23 @@ class Router(ProxyTools):
         self.routing_table[route.uri.decode()] = route
 
     def route(self, uri):
-        #self.syslog('evaluating: {}'.format(uri))
-        if '?' in uri:
-            uri, qs = uri.split('?')
-        #self.syslog('uri: {}'.format(uri))
-        if uri not in self.routing_table:
-            if uri[-1] == '/':
-                uri = uri[:-1]
-            else:
-                pos = uri.rindex('/')
-                uri = uri[:pos]
-
-        #self.syslog("URI2={}".format(uri))
-        return self.routing_table.get(uri, None)
+        parts = uri.split('/')
+        while len(parts):
+            test = '/'.join(parts)
+            if test in self.routing_table:
+                return self.routing_table[test]
+            if test+'/' in self.routing_table:
+                return self.routing_table[test+'/']
+            parts.pop()
+        for line in self.routing_table:
+            print(line)
+        return None
 
     def status(self):
         routes = []
         for _, route in self.routing_table.items():
             routes.append(route.txt())
-        return 200, routes
+        return 200, {'routes': routes}
 
 
 router = Router()

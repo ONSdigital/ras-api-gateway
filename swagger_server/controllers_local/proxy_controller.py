@@ -101,190 +101,178 @@ def survey_todo(id=None):
 
     if not respondent[0]:
         return respondent[1].getErrorMessage(), 500
+
+    results = {}
     respondent = loads(respondent[1].decode())
 
-
     @wait_for(timeout=10)
-    def process_rows():
-        defs = []
+    def fetch_rows():
+        deferred = []
         for case in cases:
 
-            def attach_exercise(survey, exercise):
-                return {'survey': loads(survey.decode()), 'exercise': exercise}
+            def attach_business(business, case_id):
+                results[case_id]['business'] = loads(business.decode())
+                return True, None
 
-            def attach_business(business):
-                return {'business': loads(business.decode())}
+            def attach_survey(survey, case_id):
+                results[case_id]['survey'] = loads(survey.decode())
+                return True, None
 
-            def get_survey(exercise):
-                exercise = loads(exercise.decode())
+            def attach_exercise(exercise, case_id):
+                exercise = results[case_id]['exercise'] = loads(exercise.decode())
+                for key in ['periodStart', 'periodEnd', 'scheduledReturn']:
+                    exercise[key] = exercise[key].replace('Z', '')
+                    exercise[key + 'Formatted'] = arrow.get(exercise[key], inputDateFormat).format(outputDateFormat)
+
                 survey_id = exercise['surveyId']
-                dSurvey = Agent(reactor).request(
+                dsurvey = Agent(reactor).request(
                     b'GET',
                     ('http://localhost:8000/collection-exercise-api/1.0.0/surveys/' + survey_id).encode(),
                     None)
-                dSurvey.addCallback(readBody)
-                dSurvey.addCallback(attach_exercise, exercise)
-                return DeferredList([dSurvey])
+                dsurvey.addCallback(readBody)
+                dsurvey.addCallback(attach_survey, case_id)
+                return DeferredList([dsurvey])
 
-            exercise_id = case['caseGroup']['collectionExerciseId']
-            dExercise = Agent(reactor).request(
-                b'GET',
-                ('http://localhost:8000/collection-exercise-api/1.0.0/collection-exercise/' + exercise_id).encode(),
-                None)
-            dExercise.addCallback(readBody)
-            dExercise.addCallback(get_survey)
-            defs.append(dExercise)
-
+            case_id = case['id']
+            results[case_id] = {'case': case}
             business_id = case['caseGroup']['partyId']
-            dBusiness = Agent(reactor).request(
+            dbusiness = Agent(reactor).request(
                 b'GET',
                 ('http://localhost:8000/collection-exercise-api/1.0.0/businesses/id/' + business_id).encode(),
                 None)
-            dBusiness.addCallback(readBody)
-            dBusiness.addCallback(attach_business)
-            defs.append(dBusiness)
+            dbusiness.addCallback(readBody)
+            dbusiness.addCallback(attach_business, case_id)
+            deferred.append(dbusiness)
 
-            #defs.append(dSurvey)
-            #return DeferredList([dBusiness, dExercise])
+            exercise_id = case['caseGroup']['collectionExerciseId']
+            dexercise = Agent(reactor).request(
+                b'GET',
+                ('http://localhost:8000/collection-exercise-api/1.0.0/collection-exercise/' + exercise_id).encode(),
+                None)
+            dexercise.addCallback(readBody)
+            dexercise.addCallback(attach_exercise, case_id)
+            deferred.append(dexercise)
+        return DeferredList(deferred)
 
-            #business, exercise = get_row(case)
-            #if not business[0]:
-            #    return business[1].getErrorMessage(), 500
-            #if not exercise[0]:
-            #    return exercise[1].getErrorMessage(), 500
-
-            #business = loads(business[1].decode())
-            #exercise = loads(exercise[1].decode())
-            #survey = get_survey()[0]
-            #if not survey[0]:
-            #    return survey[1].getErrorMessage(), 500
-
-            #survey = loads(survey[1].decode())
-
-            #for key in ['periodStart', 'periodEnd', 'scheduledReturn']:
-            #    exercise[key] = exercise[key].replace('Z', '')
-            #    exercise[key+'Formatted'] = arrow.get(exercise[key], inputDateFormat).format(outputDateFormat)
-
-            #results.append({
-            #    'userData': respondent,
-            #    'businessData': business,
-            #    'case': case,
-            #    'collectionExerciseData': exercise,
-            #    'surveyData': survey,
-            #    'status': calculate_case_status(case['caseEvents'])
-            #})
-
-        return DeferredList(defs)
-
-    for row in process_rows():
-        #print(">>", len(row), row)
-        print("========================")
-        for item in row:
-            print("*****", item)
-    return "OK", 200
-#    return jsonify(rows), 200
+    fetch_rows()
+    try:
+        rows = []
+        for _, item in results.items():
+            rows.append({
+                'userData': respondent,
+                'businessData': item['business'],
+                'case': item['case'],
+                'collectionExerciseData': item['exercise'],
+                'surveyData': item['survey'],
+                'status': calculate_case_status(item['case']['caseEvents'])
+            })
+        return make_response(jsonify({'rows': rows}), 200)
+    except Exception as e:
+        print("Error>", e)
 
 
+def aggregate():
+    return "none", 500
 
-def xsurvey_todo(id=None):
-    """Query various endpoints and aggregate result"""
+#def xsurvey_todo(id=None):
+#    """Query various endpoints and aggregate result"""##
 
-    if not id:
-        party_id = '3b136c4b-7a14-4904-9e01-13364dd7b972'
-    else:
-        party_id = id
+#    if not id:
+ #       party_id = '3b136c4b-7a14-4904-9e01-13364dd7b972'
+ #   else:
+ #       party_id = id
 
-    inputDateFormat = 'YYYY-MM-DDThh:mm:ss'
-    outputDateFormat = 'D MMM YYYY'
+#    inputDateFormat = 'YYYY-MM-DDThh:mm:ss'
+#    outputDateFormat = 'D MMM YYYY'
 
     #allowedStatuses = ['Not started', 'In progress']
 
-    @wait_for(timeout=10)
-    def parallel():
+#    @wait_for(timeout=10)
+#    def parallel():
 
-        dRespondent = Agent(reactor).request(
-            b'GET',
-            ('http://localhost:8000/collection-exercise-api/1.0.0/respondents/'+id).encode(),
-            None)
-        dRespondent.addCallback(readBody)
-        dCases = Agent(reactor).request(
-            b'GET',
-            ('http://localhost:8000/collection-exercise-api/1.0.0/cases/partyid/'+id).encode(),
-            None)
-        dCases.addCallback(readBody)
-        return DeferredList([dCases, dRespondent])
+#        dRespondent = Agent(reactor).request(
+#            b'GET',
+#            ('http://localhost:8000/collection-exercise-api/1.0.0/respondents/'+id).encode(),
+#            None)
+#        dRespondent.addCallback(readBody)
+#        dCases = Agent(reactor).request(
+#            b'GET',
+#            ('http://localhost:8000/collection-exercise-api/1.0.0/cases/partyid/'+id).encode(),
+#            None)
+#        dCases.addCallback(readBody)
+#        return DeferredList([dCases, dRespondent])
 
-    cases, respondent = parallel()
-    if not cases[0]:
-        return cases[1].getErrorMessage(), 500
+#    cases, respondent = parallel()
+#    if not cases[0]:
+#        return cases[1].getErrorMessage(), 500
 
-    if not respondent[0]:
-        return respondent[1].getErrorMessage(), 500
+#    if not respondent[0]:
+#        return respondent[1].getErrorMessage(), 500
 
-    def get_row(case):
+#    def get_row(case):#
 
-        @wait_for(timeout=10)
-        def stage1():
-            business_id = case['caseGroup']['partyId']
-            dBusiness = Agent(reactor).request(
-                b'GET',
-                ('http://localhost:8000/collection-exercise-api/1.0.0/businesses/id/'+business_id).encode(),
-                None)
-            dBusiness.addCallback(readBody)
-            exercise_id = case['caseGroup']['collectionExerciseId']
-            dExercise = Agent(reactor).request(
-                b'GET',
-                ('http://localhost:8000/collection-exercise-api/1.0.0/collection-exercise/'+exercise_id).encode(),
-                None)
-            dExercise.addCallback(readBody)
-            return DeferredList([dBusiness, dExercise])
+#        @wait_for(timeout=10)
+#        def stage1():
+#            business_id = case['caseGroup']['partyId']
+#            dBusiness = Agent(reactor).request(
+#                b'GET',
+#                ('http://localhost:8000/collection-exercise-api/1.0.0/businesses/id/'+business_id).encode(),
+#                None)
+#            dBusiness.addCallback(readBody)
+#            exercise_id = case['caseGroup']['collectionExerciseId']
+#            dExercise = Agent(reactor).request(
+#                b'GET',
+#                ('http://localhost:8000/collection-exercise-api/1.0.0/collection-exercise/'+exercise_id).encode(),
+#                None)
+#            dExercise.addCallback(readBody)
+#            return DeferredList([dBusiness, dExercise])
 
-        d = stage1()
-        return d
+#        d = stage1()
+#        return d
 
-    def get_survey():
+ #   def get_survey():
 
-        @wait_for(timeout=10)
-        def stage1():
-            survey_id = exercise['surveyId']
-            dSurvey = Agent(reactor).request(
-                b'GET',
-                ('http://localhost:8000/collection-exercise-api/1.0.0/surveys/'+survey_id).encode(),
-                None)
-            dSurvey.addCallback(readBody)
-            return DeferredList([dSurvey])
+#        @wait_for(timeout=10)
+#        def stage1():
+#            survey_id = exercise['surveyId']
+#            dSurvey = Agent(reactor).request(
+#                b'GET',
+#                ('http://localhost:8000/collection-exercise-api/1.0.0/surveys/'+survey_id).encode(),
+#                None)
+#            dSurvey.addCallback(readBody)
+#            return DeferredList([dSurvey])
 
-        d = stage1()
-        return d
+#        d = stage1()
+#        return d
 
-    respondent = loads(respondent[1].decode())
-    results = []
-    for case in loads(cases[1].decode()):
-        business, exercise = get_row(case)
-        if not business[0]:
-            return business[1].getErrorMessage(), 500
-        if not exercise[0]:
-            return exercise[1].getErrorMessage(), 500
+ #   respondent = loads(respondent[1].decode())
+ #   results = []
+ #   for case in loads(cases[1].decode()):
+ #       business, exercise = get_row(case)
+ #       if not business[0]:
+ #           return business[1].getErrorMessage(), 500
+ #       if not exercise[0]:
+ #           return exercise[1].getErrorMessage(), 500#
 
-        business = loads(business[1].decode())
-        exercise = loads(exercise[1].decode())
-        survey = get_survey()[0]
-        if not survey[0]:
-            return survey[1].getErrorMessage(), 500
+#        business = loads(business[1].decode())
+#        exercise = loads(exercise[1].decode())
+#        survey = get_survey()[0]
+#        if not survey[0]:
+#            return survey[1].getErrorMessage(), 500#
 
-        survey = loads(survey[1].decode())
+#        survey = loads(survey[1].decode())
 
-        for key in ['periodStart', 'periodEnd', 'scheduledReturn']:
-            exercise[key] = exercise[key].replace('Z', '')
-            exercise[key+'Formatted'] = arrow.get(exercise[key], inputDateFormat).format(outputDateFormat)
+#        for key in ['periodStart', 'periodEnd', 'scheduledReturn']:
+ #           exercise[key] = exercise[key].replace('Z', '')
+  #          exercise[key+'Formatted'] = arrow.get(exercise[key], inputDateFormat).format(outputDateFormat)
+#
+ #       results.append({
+  #          'userData': respondent,
+   #         'businessData': business,
+    #        'case': case,
+     #       'collectionExerciseData': exercise,
+      #      'surveyData': survey,
+       #     'status': calculate_case_status(case['caseEvents'])
+        #})
 
-        results.append({
-            'userData': respondent,
-            'businessData': business,
-            'case': case,
-            'collectionExerciseData': exercise,
-            'surveyData': survey,
-            'status': calculate_case_status(case['caseEvents'])
-        })
-
-    return jsonify(results), 200
+#    return jsonify(results), 200

@@ -7,6 +7,9 @@ from twisted.internet.defer import inlineCallbacks
 from twisted.internet.defer import DeferredList
 from crochet import wait_for,run_in_reactor
 from json import loads
+from jinja2 import Environment, FileSystemLoader, Template
+env = Environment(loader=FileSystemLoader('templates'))
+env.filters['type'] = type
 
 def get_secret(*args, **kwargs):
     """Test endpoint"""
@@ -31,6 +34,23 @@ def status(*args, **kwargs):
     except Exception as e:
         print(e)
 
+def mygateway():
+    """Display a custom my-gateway screen"""
+    try:
+        template = env.get_template('mygateway.html')
+        items = []
+        for endpoint in router.routing_table:
+            route = router.routing_table[endpoint]
+            if route.is_ui:
+                url = '{}://{}:{}{}'.format(route.proto, route.host, route.port, route.uri.decode())
+                items.append({'ms': 'Unknown microservice', 'url': url})
+
+        print("]]",items)
+        rendered = template.render({'routes': items})
+        return make_response(rendered, 200)
+    except Exception as e:
+        print("ERROR>", e)
+        return "FAIL", 404
 
 def aggregate():
     """Make an aggregate call"""

@@ -15,6 +15,8 @@ class Route(object):
         self._host = host
         self._port = port
         self._uri = uri
+        self._ui = uri.rstrip('/').split('/')[-1] == 'ui'
+        print('....', uri.split('/'), self._ui)
 
     def txt(self):
         return '{}://{}:{}{}'.format(self._proto, self._host, self._port, self._uri)
@@ -39,6 +41,9 @@ class Route(object):
     def ssl(self):
         return self._proto == 'https'
 
+    @property
+    def is_ui(self):
+        return self._ui
 
 class Router(ProxyTools):
 
@@ -46,7 +51,7 @@ class Router(ProxyTools):
         self.routing_table = {}
 
     def setup(self):
-        for endpoint in ['register', 'unregister', 'status', 'ui/', 'ui/css', 'ui/lib', 'ui/images', 'swagger.json']:
+        for endpoint in ['register', 'unregister', 'status', 'ui/', 'ui/css', 'ui/lib', 'ui/images', 'swagger.json', 'mygateway']:
             self.register(dumps({
                 'protocol': 'http',
                 'host': 'localhost',

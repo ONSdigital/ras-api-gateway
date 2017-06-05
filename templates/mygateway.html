@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>My Gateway</title>
+</head>
+<body>
+<h1>Developer's My Gateway Dashboard</h1>
+{% for route in routes %}
+<div>Microservice ({{route.ms}}) <a href="{{route.url}}">{{route.url}}</a></div>
+{% endfor %}
+</body>
+</html>

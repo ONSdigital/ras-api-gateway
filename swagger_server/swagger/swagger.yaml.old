@@ -1,0 +1,18 @@
+swagger: "2.0"
+host: "localhost:8080"
+
+info:
+  title: OAuth Example
+  version: "1.0"
+
+paths:
+  /secret:
+    get:
+      summary: Return secret string
+      operationId: get_secret
+      x-swagger-router-controller: swagger_server.controllers_local.proxy_controller
+      responses:
+        200:
+          description: secret response
+          schema:
+            type: string

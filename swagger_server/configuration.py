@@ -103,7 +103,10 @@ class ONSEnvironment(object):
             print(">>>", io.read())
 
         self._crypto_key = getenv('ONS_CRYPTOKEY', self.get('crypto_key'))
-        print("@@@@@", self.get('crypto_key'))
+        print("@@ Crypto..", self.get('crypto_key'))
+        print("@@ Debug...", self.get('debug'))
+        print("@@ CLevel..", self.get('log_level'))
+
         print("***** KEY ******", self._crypto_key)
         print("GETCWD:", os.getcwd())
         config = './swagger_server/swagger/swagger.yaml'

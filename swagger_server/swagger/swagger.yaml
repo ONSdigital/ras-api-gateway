@@ -1,1 +1,71 @@
-../../../../apis/ras-api-gateway/api/swagger/swagger.yaml
+swagger: "2.0"
+info:
+  version: "1.0.0"
+  title: RAS API Gateway
+host: localhost:8080
+basePath: /api/1.0.0
+definitions: {}
+schemes:
+  - http
+  - https
+consumes: [application/json]
+produces: [application/json]
+
+paths:
+  /register:
+    post:
+      operationId: register
+      parameters:
+      - name: details
+        in: formData
+        type: string
+        required: true
+      responses:
+        200: {description: endpoint registered}
+        500: {description: server error}
+      x-swagger-router-controller: swagger_server.controllers_local.proxy_controller
+
+  /unregister/{host}:
+    post:
+      operationId: unregister
+      parameters:
+      - name: host
+        in: path
+        type: string
+        required: true
+      responses:
+        200: {description: endpoint unregistered}
+        500: {description: server error}
+      x-swagger-router-controller: swagger_server.controllers_local.proxy_controller
+
+  /status:
+    get:
+      operationId: status
+      responses:
+        200: {description: status supplied}
+        500: {description: server error}
+      x-swagger-router-controller: swagger_server.controllers_local.proxy_controller
+
+  /mygateway:
+    get:
+      operationId: mygateway
+      responses:
+        200: {description: status supplied}
+        500: {description: server error}
+      x-swagger-router-controller: swagger_server.controllers_local.proxy_controller
+      
+  /surveys/todo/{id}:
+    get:
+      description: Aggregated call based on a party identifier
+      operationId: survey_todo
+      parameters:
+      - name: id
+        description: The party id
+        in: path
+        type: string
+        required: true
+      responses:
+        200: {description: status supplied}
+        500: {description: server error}
+      x-swagger-router-controller: swagger_server.controllers_local.proxy_controller
+  

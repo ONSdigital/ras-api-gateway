@@ -31,5 +31,5 @@ if __name__ == '__main__':
     reactor.suggestThreadPoolSize(30)
     reactor.listenTCP(8080, ProxyFactory())
     reactor.callLater(1, router.setup)
-    Twisted(app).run(port=ons_env.port)
+    Twisted(app).run(port=8079)
 

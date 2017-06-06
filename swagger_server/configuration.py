@@ -119,8 +119,8 @@ class ONSEnvironment(object):
                 io.write(dump(code))
 
         cf_app_services = getenv('VCAP_SERVICES')
-        if cf_app_services is not None:
-            db_name = self.get('db_name')
+        db_name = self.get('db_name')
+        if cf_app_services and db_name:
             db_config = CfServices(loads(cf_app_services)).get(db_name)
             # override the configured db_connection with the CloudFoundry value:
             self.set('db_connection', db_config['uri'])

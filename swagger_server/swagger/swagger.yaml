@@ -2,7 +2,7 @@ swagger: "2.0"
 info:
   version: "1.0.0"
   title: RAS API Gateway
-host: localhost:8080
+host: localhost:8079
 basePath: /api/1.0.0
 definitions: {}
 schemes:

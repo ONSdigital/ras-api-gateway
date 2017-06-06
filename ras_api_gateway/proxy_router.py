@@ -55,7 +55,7 @@ class Router(ProxyTools):
             self.register(dumps({
                 'protocol': 'http',
                 'host': 'localhost',
-                'port': '8080',
+                'port': '8079',
                 'uri': '/api/1.0.0/'+endpoint
             }))
 

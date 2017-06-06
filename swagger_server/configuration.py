@@ -99,6 +99,9 @@ class ONSEnvironment(object):
         """
         import os
 
+        with open('config.ini') as io:
+            print(">>>", io.read())
+
         self._crypto_key = getenv('ONS_CRYPTOKEY', self.get('crypto_key'))
         print("***** KEY ******", self._crypto_key)
         print("GETCWD:", os.getcwd())

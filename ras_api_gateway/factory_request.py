@@ -17,6 +17,7 @@ from .proxy_router import router
 class ProxyRequest(proxy.ProxyRequest, ProxyTools):
     """ this is where the transaction is initially received """
     protocols = dict(http=ProxyClientFactory, https=ProxyClientFactory)
+    noisy = True
 
     def process(self):
         """ the is the request processor / main decision maker """
@@ -27,7 +28,7 @@ class ProxyRequest(proxy.ProxyRequest, ProxyTools):
         if route:
             headers[b'host'] = route.host.encode()
             class_ = self.protocols[route.proto]
-            print("=> {} {} {} {} {}".format(self.method, self.clientproto, route.host, route.port, self.uri))
+            self.syslog("=> {} {} {} {} {}".format(self.method, self.clientproto, route.host, route.port, self.uri))
             client_factory = class_(self.method, self.uri, self.clientproto, headers, data, self)
             if route.ssl:
                 reactor.connectSSL(route.host, route.port, client_factory, ssl.CertificateOptions())

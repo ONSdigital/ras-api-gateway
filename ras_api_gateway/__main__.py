@@ -22,9 +22,9 @@ import logging
 
 if __name__ == '__main__':
     ons_env.activate()
-    logging.getLogger('twisted').setLevel(logging.ERROR)
+    logging.getLogger('twisted').setLevel(logging.DEBUG)
     log.startLogging(stdout)
-    client._HTTP11ClientFactory.noisy = False
+    client._HTTP11ClientFactory.noisy = True
     app = App(__name__, specification_dir='../swagger_server/swagger/')
     CORS(app.app)
     app.add_api('swagger.yaml', arguments={'title': 'ONS Microservice'})

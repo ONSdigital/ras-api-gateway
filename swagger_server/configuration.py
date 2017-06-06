@@ -97,18 +97,7 @@ class ONSEnvironment(object):
         the hostname we recover from VCAP application. We also need to set the configuration port for
         use by the listener if we're running locally.
         """
-        import os
-
-        with open('config.ini') as io:
-            print(">>>", io.read())
-
         self._crypto_key = getenv('ONS_CRYPTOKEY', self.get('crypto_key'))
-        print("@@ Crypto..", self.get('crypto_key'))
-        print("@@ Debug...", self.get('debug'))
-        print("@@ CLevel..", self.get('log_level'))
-
-        print("***** KEY ******", self._crypto_key)
-        print("GETCWD:", os.getcwd())
         config = './swagger_server/swagger/swagger.yaml'
         if not Path(config).is_file():
             config = '../swagger_server/swagger/swagger.yaml'

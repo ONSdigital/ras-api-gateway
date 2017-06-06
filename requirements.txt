@@ -22,7 +22,6 @@ Jinja2==2.9.6
 jsonschema==2.6.0
 MarkupSafe==1.0
 observable==0.3.2
-pkg-resources==0.0.0
 psycopg2==2.7.1
 pycparser==2.17
 pycrypto==2.6.1

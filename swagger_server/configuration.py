@@ -98,6 +98,7 @@ class ONSEnvironment(object):
         use by the listener if we're running locally.
         """
         self._crypto_key = getenv('ONS_CRYPTOKEY', self.get('crypto_key'))
+        print("***** KEY ******", self._crypto_key)
         config = './swagger_server/swagger/swagger.yaml'
         if not Path(config).is_file():
             config = '../swagger_server/swagger/swagger.yaml'

@@ -11,7 +11,7 @@ from twisted.python import log
 
 class ProxyTools(object):
 
-    def syslog(self, msg):
+    def syslog(self, msg, dummy=None):
         """
         Report an issue to the external logging infrastructure
         :param lvl: The log level we're outputting to

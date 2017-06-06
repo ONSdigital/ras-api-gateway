@@ -27,6 +27,7 @@ class ProxyRequest(proxy.ProxyRequest, ProxyTools):
         if route:
             headers[b'host'] = route.host.encode()
             class_ = self.protocols[route.proto]
+            print("=> {} {} {} {} {}".format(self.method, self.clientproto, route.host, route.port, self.uri))
             client_factory = class_(self.method, self.uri, self.clientproto, headers, data, self)
             if route.ssl:
                 reactor.connectSSL(route.host, route.port, client_factory, ssl.CertificateOptions())

@@ -12,6 +12,8 @@ from logging import ERROR
 from .factory_client import ProxyClientFactory
 from .proxy_tools import ProxyTools
 from .proxy_router import router
+from datetime import datetime, timedelta
+from .ons_jwt import my_token
 
 
 class ProxyRequest(proxy.ProxyRequest, ProxyTools):
@@ -27,6 +29,13 @@ class ProxyRequest(proxy.ProxyRequest, ProxyTools):
         route = router.route(self.uri.decode())
         if route:
             headers[b'host'] = route.host.encode()
+            if route.is_ui:
+                jwt = {
+                    'expires_at': (datetime.now() + timedelta(seconds=6000)).timestamp(),
+                    'scope': ['ci:read', 'ci:write']
+                }
+                headers[b'authorization'] = my_token.encode(jwt).encode()
+
             class_ = self.protocols[route.proto]
             self.syslog("=> {} {} {} {} {}".format(self.method, self.clientproto, route.host, route.port, self.uri))
             client_factory = class_(self.method, self.uri, self.clientproto, headers, data, self)

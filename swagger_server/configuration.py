@@ -54,6 +54,12 @@ class ONSEnvironment(object):
         self.logger.info("Running with '{}' configuration".format(self._env))
         print("Running with '{}' configuration".format(self._env))
 
+        authentication = self.get('authentication')
+        self._fake_jwt = False
+        if authentication:
+            if authentication.lower() in ['false', 'no']:
+                self._fake_jwt = True
+
     def _parse_manifest(self):
         """
         Attempt to read the CloudFoundry manifest. If present, assume the manifest defines just one application,
@@ -173,6 +179,10 @@ class ONSEnvironment(object):
     @property
     def uri_prefix(self):
         return self._base
+
+    @property
+    def fake_jwt(self):
+        return self._fake_jwt
 
 ons_env = ONSEnvironment()
 logger = ons_env.logger

@@ -56,13 +56,19 @@ def mygateway():
         for endpoint in router.routing_table:
             route = router.routing_table[endpoint]
             if route.is_ui:
-                items.append({'ms': 'Unknown microservice', 'url': route.uri.decode()})
+                print(">>", router.last_seen(route))
+                items.append({'ms': 'Unknown microservice', 'url': route.uri.decode(), 'last': router.last_seen(route)})
 
         rendered = template.render({'routes': items})
         return make_response(rendered, 200)
     except Exception as e:
         print("ERROR>", e)
         return "FAIL", 404
+
+
+def ping(host, port):
+    code, msg = router.ping(host, port)
+    return make_response(msg, code)
 
 
 def calculate_case_status(caseEvents):

@@ -7,6 +7,7 @@
 ##############################################################################
 from .proxy_tools import ProxyTools
 from json import loads, dumps, decoder
+from datetime import datetime
 
 class Route(object):
 
@@ -45,13 +46,21 @@ class Route(object):
     def is_ui(self):
         return self._ui
 
+
 class Router(ProxyTools):
 
     def __init__(self):
         self.routing_table = {}
+        self._hosts = {}
+
+    def last_seen(self, route):
+        key = '{}:{}'.format(route.host, route.port)
+        if key not in self._hosts:
+            return "Not seen yet"
+        return self._hosts[key].strftime('%c')
 
     def setup(self):
-        for endpoint in ['register', 'unregister', 'status', 'ui/', 'ui/css', 'ui/lib', 'ui/images', 'swagger.json', 'mygateway']:
+        for endpoint in ['register', 'unregister', 'status', 'ui/', 'ui/css', 'ui/lib', 'ui/images', 'swagger.json', 'mygateway', 'ping']:
             self.register(dumps({
                 'protocol': 'http',
                 'host': 'localhost',
@@ -78,6 +87,8 @@ class Router(ProxyTools):
             details['uri']
         ))
         print('registered "{uri}"'.format(**details))
+        key = '{}:{}'.format(details['host'], details['port'])
+        self._hosts[key] = datetime.now()
         return 200, {'text': 'endpoint registered successfully'}
 
     def add(self, route):
@@ -90,10 +101,8 @@ class Router(ProxyTools):
             if test in self.routing_table:
                 return self.routing_table[test]
             if test+'/' in self.routing_table:
-                return self.routing_table[test+'/']
+                return self.routing_table[test + '/']
             parts.pop()
-        for line in self.routing_table:
-            print(line)
         return None
 
     def status(self):
@@ -102,5 +111,12 @@ class Router(ProxyTools):
             routes.append(route.txt())
         return 200, {'routes': routes}
 
+    def ping(self, host, port):
+        key = '{}:{}'.format(host, port)
+        if key in self._hosts:
+            self._hosts[key] = datetime.now()
+            return 200, 'OK'
+        else:
+            return 204, 'not registered'
 
 router = Router()

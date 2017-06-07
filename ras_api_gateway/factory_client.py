@@ -14,7 +14,7 @@ from twisted.internet.error import ConnectionDone
 class ProxyClientFactory(proxy.ProxyClientFactory, ProxyTools):
     """ intercept connection startup and shutdown """
     protocol = proxy.ProxyClient
-    noisy = True
+    noisy = False
 
     def startedConnecting(self, connector):
         pass

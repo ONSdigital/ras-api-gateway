@@ -14,7 +14,7 @@ from .proxy_tools import ProxyTools
 class Proxy(proxy.Proxy):
     """ set the request factory """
     requestFactory = ProxyRequest
-    noisy = True
+    noisy = False
 
 class ProxyFactory(http.HTTPFactory, ProxyTools):
     protocol = Proxy

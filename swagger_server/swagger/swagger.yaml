@@ -2,7 +2,7 @@ swagger: "2.0"
 info:
   version: "1.0.0"
   title: RAS API Gateway
-host: localhost:8079
+host: localhost:8080
 basePath: /api/1.0.0
 definitions: {}
 schemes:
@@ -51,6 +51,24 @@ paths:
       operationId: mygateway
       responses:
         200: {description: status supplied}
+        500: {description: server error}
+      x-swagger-router-controller: swagger_server.controllers_local.proxy_controller
+
+  /ping/{host}/{port}:
+    get:
+      operationId: ping
+      parameters:
+      - name: host
+        in: path
+        type: string
+        required: true
+      - name: port
+        in: path
+        type: string
+        required: true
+      responses:
+        200: {description: api gateway is up and your routes are registered}
+        204: {description: api gateway is up but you need to re-register}
         500: {description: server error}
       x-swagger-router-controller: swagger_server.controllers_local.proxy_controller
       

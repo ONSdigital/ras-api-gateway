@@ -17,7 +17,7 @@ from swagger_server.configuration import ons_env
 class ProxyRequest(proxy.ProxyRequest, ProxyTools):
     """ this is where the transaction is initially received """
     protocols = dict(http=ProxyClientFactory, https=ProxyClientFactory)
-    noisy = True
+    noisy = False
 
     def process(self):
         """ the is the request processor / main decision maker """

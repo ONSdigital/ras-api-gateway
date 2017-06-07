@@ -117,8 +117,9 @@ class ONSEnvironment(object):
 
         cf_app_env = getenv('VCAP_APPLICATION')
         if cf_app_env is not None:
+            code['host'] = self.get('api_gateway')
             host = loads(cf_app_env)['application_uris'][0]
-            code['host'] = host
+            #code['host'] = host
             if len(host.split(':')) > 1:
                 self._port = int(host.split(':')[1])
             with open(config, 'w') as io:

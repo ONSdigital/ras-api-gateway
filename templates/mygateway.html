@@ -7,7 +7,7 @@
 <body>
 <h1>Developer's My Gateway Dashboard</h1>
 {% for route in routes %}
-<div>Microservice ({{route.ms}}) <a href="{{route.url}}">{{route.url}}</a></div>
+<div>Microservice ({{route.ms}}) <a href="{{route.url}}">{{route.url}}</a> || Last seen: {{route.last}}</div>
 {% endfor %}
 </body>
 </html>

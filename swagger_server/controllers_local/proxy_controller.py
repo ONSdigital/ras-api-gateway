@@ -9,8 +9,12 @@ from json import loads
 from jinja2 import Environment, FileSystemLoader
 from datetime import datetime, timedelta
 import arrow
+import twisted.internet._sslverify as v
+
+v.platformTrust = lambda : None
 
 env = Environment(loader=FileSystemLoader('templates'))
+
 inputDateFormat = 'YYYY-MM-DDThh:mm:ss'
 outputDateFormat = 'D MMM YYYY'
 
@@ -89,6 +93,7 @@ def hit_route(uri, params):
     route = router.route(uri)
     if not route: raise NoRouteError
     url = '{}://{}:{}{}/{}'.format(route.proto, route.host, route.port, uri, params).encode()
+    print("**** HIT: ", url)
     deferred = Agent(reactor).request(b'GET', url, None)
     deferred.addCallback(readBody)
     return deferred

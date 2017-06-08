@@ -1,7 +1,14 @@
+##############################################################################
+#                                                                            #
+#   ONS / RAS API Gateway                                                    #
+#   License: MIT                                                             #
+#   Copyright (c) 2017 Crown Copyright (Office for National Statistics)      #
+#                                                                            #
+##############################################################################
 from flask import jsonify, make_response
 from ras_api_gateway.proxy_router import router
 from twisted.internet import reactor
-from twisted.internet.error import ConnectionRefusedError, NoRouteError
+from twisted.internet.error import ConnectionRefusedError, NoRouteError, UserError
 from twisted.web.client import Agent, readBody
 from twisted.internet.defer import DeferredList
 from crochet import wait_for
@@ -10,7 +17,9 @@ from jinja2 import Environment, FileSystemLoader
 from datetime import datetime, timedelta
 import arrow
 import twisted.internet._sslverify as v
-
+#
+#   Disable SSL tail certificate verification
+#
 v.platformTrust = lambda : None
 
 env = Environment(loader=FileSystemLoader('templates'))
@@ -58,7 +67,6 @@ def mygateway():
         for endpoint in router.routing_table:
             route = router.routing_table[endpoint]
             if route.is_ui:
-                print(">>", router.last_seen(route))
                 items.append({'ms': 'Unknown microservice', 'url': route.uri.decode(), 'last': router.last_seen(route)})
 
         rendered = template.render({'routes': items})
@@ -89,13 +97,18 @@ def calculate_case_status(caseEvents):
     return status
 
 
+def hit_read(response):
+    if response.code != 200:
+        raise UserError
+    return response
+
+
 def hit_route(uri, params):
     route = router.route(uri)
     if not route: raise NoRouteError
     url = '{}://{}:{}{}/{}'.format(route.proto, route.host, route.port, uri, params).encode()
-    print("**** HIT: ", url)
     deferred = Agent(reactor).request(b'GET', url, None)
-    deferred.addCallback(readBody)
+    deferred.addCallback(hit_read).addCallback(readBody)
     return deferred
 
 
@@ -141,6 +154,11 @@ def survey_todo_process(party_id):
         return make_response('case service is not responding', 500)
     except NoRouteError:
         return make_response('no route to case service', 500)
+    except UserError:
+        return make_response('no such party id "{}"'.format(party_id), 404)
+    except Exception as e:
+        print("Error>", e)
+        return make_response('unknown error', 500)
 
     def attach(item, case_id, key):
         results[case_id][key] = loads(item.decode())
@@ -157,13 +175,12 @@ def survey_todo_process(party_id):
                     ex[key + 'Formatted'] = arrow.get(ex[key], inputDateFormat).format(outputDateFormat)
                 return DeferredList([hit_route(SURVEY_GET, ex['surveyId']).addCallback(attach, case_id, 'survey')])
             case_id = case['id']
-            results[case_id] = {'case': case}
             business_id = case['caseGroup']['partyId']
-            business = hit_route(BUSINESS_GET, business_id).addCallback(attach, case_id, 'business')
-            dlist.append(business)
             exercise_id = case['caseGroup']['collectionExerciseId']
+            results[case_id] = {'case': case}
+            business = hit_route(BUSINESS_GET, business_id).addCallback(attach, case_id, 'business')
             exercise = hit_route(EXERCISE_GET, exercise_id).addCallback(attach_exercise, case_id)
-            dlist.append(exercise)
+            dlist += [business, exercise]
         return DeferredList(dlist)
 
     deferreds = fetch_rows()

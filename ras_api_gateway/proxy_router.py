@@ -59,7 +59,8 @@ class Router(ProxyTools):
         return self._hosts[key].strftime('%c')
 
     def setup(self):
-        for endpoint in ['register', 'unregister', 'status', 'ui/', 'ui/css', 'ui/lib', 'ui/images', 'swagger.json', 'mygateway', 'ping']:
+        for endpoint in ['register', 'unregister', 'status', 'ui/', 'ui/css', 'ui/lib',
+                         'ui/images', 'swagger.json', 'mygateway', 'ping', 'surveys/todo']:
             self.register(dumps({
                 'protocol': 'http',
                 'host': 'localhost',

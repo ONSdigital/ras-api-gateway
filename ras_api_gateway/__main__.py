@@ -27,6 +27,18 @@ if __name__ == '__main__':
     client._HTTP11ClientFactory.noisy = True
     app = App(__name__, specification_dir='../swagger_server/swagger/')
     CORS(app.app)
+    try:
+        with open('../swagger_server/swagger/swagger.yaml') as io:
+            print("**** FOUND PATH 1")
+    except Exception:
+        print("#### 1 NOT FOUND")
+
+    try:
+        with open('swagger_server/swagger/swagger.yaml') as io:
+            print("**** FOUND PATH 2")
+    except Exception:
+        print("#### 2 NOT FOUND")
+
     app.add_api('swagger.yaml', arguments={'title': 'ONS Microservice'})
     reactor.suggestThreadPoolSize(30)
     reactor.listenTCP(8080, ProxyFactory())

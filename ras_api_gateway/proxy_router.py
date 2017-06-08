@@ -17,7 +17,6 @@ class Route(object):
         self._port = port
         self._uri = uri
         self._ui = uri.rstrip('/').split('/')[-1] == 'ui'
-        print('....', uri.split('/'), self._ui)
 
     def txt(self):
         return '{}://{}:{}{}'.format(self._proto, self._host, self._port, self._uri)

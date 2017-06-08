@@ -41,8 +41,6 @@ def status(*args, **kwargs):
     """Test endpoint"""
     try:
         code, msg = router.status()
-        print(code)
-        print(msg)
         return make_response(jsonify(msg), code)
     except Exception as e:
         print(e)

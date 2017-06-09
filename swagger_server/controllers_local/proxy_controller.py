@@ -64,7 +64,7 @@ def mygateway():
     """Display a custom my-gateway screen"""
     proto = ons_env.get('protocol')
     host = ons_env.get('api_gateway')
-    port = 443 if proto == 443 else 8080
+    port = 443 if proto == 'https' else 8080
     base = '{}://{}:{}'.format(proto, host, port)
     try:
         template = env.get_template('mygateway.html')

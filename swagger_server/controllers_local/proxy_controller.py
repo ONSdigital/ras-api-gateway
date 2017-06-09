@@ -15,6 +15,7 @@ from crochet import wait_for
 from json import loads
 from jinja2 import Environment, FileSystemLoader
 from datetime import datetime, timedelta
+from ..configuration import ons_env
 import arrow
 import twisted.internet._sslverify as v
 #
@@ -61,13 +62,20 @@ def status(*args, **kwargs):
 
 def mygateway():
     """Display a custom my-gateway screen"""
+    proto = ons_env.get('protocol')
+    host = ons_env.get('api_gateway')
     try:
         template = env.get_template('mygateway.html')
         items = []
         for endpoint in router.routing_table:
             route = router.routing_table[endpoint]
             if route.is_ui:
-                items.append({'ms': 'Unknown microservice', 'url': route.uri.decode(), 'last': router.last_seen(route)})
+                items.append({
+                    'ms': 'Unknown microservice',
+                    'url': '{}://{}:{}{}'.format(proto, route.host, route.port, route.uri.decode()),
+                    'uri': route.uri.decode(),
+                    'host': '{}:{}'.format(route.host, route.port),
+                    'last': router.last_seen(route)})
 
         rendered = template.render({'routes': items})
         return make_response(rendered, 200)

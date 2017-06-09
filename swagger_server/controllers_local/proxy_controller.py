@@ -126,7 +126,8 @@ def hit_route(uri, params):
 def lookup_cases(party_id):
     return hit_route(CASES_GET, party_id)
 
-def survey_todo(id=None):
+
+def survey_todo(id=None, status_filter=None):
     """
     Generate the TODO data for the mySurveys page. This involves making a number of cross-MS
     API calls and aggregating multiple objects types into a single structure. The process is essentially;
@@ -147,17 +148,16 @@ def survey_todo(id=None):
     :return: An aggregated record to be consumed by the mySurveys page
     """
     try:
-        return survey_todo_process(id)
+        return survey_todo_process(id, loads(status_filter))
     except Exception as e:
         print('Unexpected exception: ',e)
         return make_response('unexpected error', 500)
 
 
-def survey_todo_process(party_id):
+def survey_todo_process(party_id, status_filter):
     """Query various endpoints and aggregate result"""
     results = {}
     rows = []
-
     try:
         cases = loads(lookup_cases(party_id).decode())
     except ConnectionRefusedError:
@@ -170,8 +170,8 @@ def survey_todo_process(party_id):
         print("Error>", e)
         return make_response('unknown error', 500)
 
-    def attach(item, case_id, key):
-        results[case_id][key] = loads(item.decode())
+    def attach(blob, case_id, key):
+        results[case_id][key] = loads(blob.decode())
         return True, None
 
     @wait_for(timeout=10)
@@ -197,11 +197,14 @@ def survey_todo_process(party_id):
     for deferred in deferreds:
         if not deferred[0]:
             return deferred[1] if deferred[1] == str else deferred[1].getErrorMessage(), 500
-    [rows.append({
-        'businessData': item['business'],
-        'case': item['case'],
-        'collectionExerciseData': item['exercise'],
-        'surveyData': item['survey'],
-        'status': calculate_case_status(item['case']['caseEvents'])
-    }) for item in results.values()]
+    for item in results.values():
+        item_status = calculate_case_status(item['case']['caseEvents']).lower()
+        if item_status in status_filter:
+            rows.append({
+                'businessData': item['business'],
+                'case': item['case'],
+                'collectionExerciseData': item['exercise'],
+                'surveyData': item['survey'],
+                'status': item_status
+            })
     return make_response(jsonify({'userData': loads(deferreds[0][1].decode()), 'rows': rows}), 200)

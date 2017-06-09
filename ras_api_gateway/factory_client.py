@@ -16,12 +16,6 @@ class ProxyClientFactory(proxy.ProxyClientFactory, ProxyTools):
     protocol = proxy.ProxyClient
     noisy = False
 
-    def startedConnecting(self, connector):
-        pass
-
-    def clientConnectionFailed(self, connector, reason):
-        pass
-
     def clientConnectionLost(self, connector, reason):
         if reason.type != ConnectionDone:
             self.syslog(WARN, '* warning - connection lost "{}"'.format(reason.value))

@@ -82,6 +82,11 @@ paths:
         in: path
         type: string
         required: true
+      - name: status_filter
+        description: The list of statuses we're interested in
+        in: query
+        type: string
+        required: true
       responses:
         200: {description: status supplied}
         500: {description: server error}

@@ -19,7 +19,6 @@ from connexion import App
 from flask_cors import CORS
 from ras_api_gateway.proxy_router import router
 import logging
-from yaml import load
 
 if __name__ == '__main__':
     ons_env.activate()

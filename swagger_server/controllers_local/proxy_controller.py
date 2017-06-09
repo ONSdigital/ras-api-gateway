@@ -64,6 +64,8 @@ def mygateway():
     """Display a custom my-gateway screen"""
     proto = ons_env.get('protocol')
     host = ons_env.get('api_gateway')
+    port = 443 if proto == 443 else 8080
+    base = '{}://{}:{}'.format(proto, host, port)
     try:
         template = env.get_template('mygateway.html')
         items = []
@@ -72,7 +74,7 @@ def mygateway():
             if route.is_ui:
                 items.append({
                     'ms': 'Unknown microservice',
-                    'url': '{}://{}:{}{}'.format(proto, route.host, route.port, route.uri.decode()),
+                    'url': '{}{}'.format(base, route.uri.decode()),
                     'uri': route.uri.decode(),
                     'host': '{}:{}'.format(route.host, route.port),
                     'last': router.last_seen(route)})

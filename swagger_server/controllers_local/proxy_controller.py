@@ -156,6 +156,9 @@ def survey_todo(id=None, status_filter=None):
 
 def survey_todo_process(party_id, status_filter):
     """Query various endpoints and aggregate result"""
+    if type(status_filter) != list:
+        return make_response('"status filter" needs to be a JSON format list of statuses', 500)
+
     results = {}
     rows = []
     try:

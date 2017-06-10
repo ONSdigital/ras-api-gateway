@@ -35,7 +35,7 @@ class ProxyRequest(proxy.ProxyRequest, ProxyTools):
                 headers[b'authorization'] = my_token.encode(jwt).encode()
 
             class_ = self.protocols[route.proto]
-            self.syslog("=> {} {} {} {} {}".format(self.method, self.clientproto, route.host, route.port, self.uri))
+            #self.syslog("=> {} {} {} {} {}".format(self.method, self.clientproto, route.host, route.port, self.uri))
             client_factory = class_(self.method, self.uri, self.clientproto, headers, data, self)
             if route.ssl:
                 reactor.connectSSL(route.host, route.port, client_factory, ssl.CertificateOptions())

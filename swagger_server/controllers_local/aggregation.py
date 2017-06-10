@@ -169,12 +169,12 @@ class ONSAggregation(object):
             """
             dlist = [hit_route(self.RESPONDENTS_GET, party_id)]
             for case in cases:
-                def attach_exercise(ex, caseid):
-                    ex = results[caseid]['exercise'] = loads(ex.decode())
+                def attach_exercise(ex, case_identifier):
+                    ex = results[case_identifier]['exercise'] = loads(ex.decode())
                     for key in ['periodStart', 'periodEnd', 'scheduledReturn']:
                         ex[key] = ex[key].replace('Z', '')
                         ex[key + 'Formatted'] = arrow.get(ex[key], self.inputDateFormat).format(self.outputDateFormat)
-                    return DeferredList([hit_route(self.SURVEY_GET, ex['surveyId']).addCallback(attach, caseid, 'survey')])
+                    return DeferredList([hit_route(self.SURVEY_GET, ex['surveyId']).addCallback(attach, case_identifier, 'survey')])
                 case_id = case['id']
                 business_id = case['caseGroup']['partyId']
                 exercise_id = case['caseGroup']['collectionExerciseId']

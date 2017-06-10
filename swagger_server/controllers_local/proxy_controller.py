@@ -76,6 +76,11 @@ def ping(host, port):
     code, msg = router.ping(host, port)
     return make_response(msg, code)
 
+from twisted.python import log
+from sys import stdout
+log.startLogging(stdout)
+
+in_flight = 0
 
 def survey_todo(id=None, status_filter=None):
     """
@@ -85,5 +90,23 @@ def survey_todo(id=None, status_filter=None):
     :param status_filter: The statuses we're interested in
     :return: A data object suitable for producing "mySurveys"
     """
-    return aggregator.survey_todo(id, loads(status_filter))
+    global in_flight
+
+    in_flight += 1
+    log.msg("++ In-flight: ", in_flight)
+    response = aggregator.survey_todo(id, loads(status_filter))
+    in_flight -= 1
+    log.msg("-- In-flight: ", in_flight)
+    return response
+
+
+def benchmark():
+    global in_flight
+
+    in_flight += 1
+    log.msg("++ In-flight: ", in_flight)
+    response = make_response(jsonify("unregister"), 200)
+    in_flight -= 1
+    log.msg("-- In-flight: ", in_flight)
+    return response
 

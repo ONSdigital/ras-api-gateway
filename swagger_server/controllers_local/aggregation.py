@@ -16,53 +16,10 @@ import treq
 import arrow
 from twisted.python import log
 from json import dumps
-#from crochet import wait_for, no_setup
-#no_setup()
 #
 #   We don't really want the default logging 'noise' associated with HTTP client requests
 #
 client._HTTP11ClientFactory.noisy = False
-
-
-def hit_me(*args, **kwargs):
-    print("HIT ME")
-    print("Args>", args)
-    print("KWArgs>", kwargs)
-    return "Bye!"
-
-def hit_route(url, params):
-    """
-    Excercise a remote endpoint
-
-    :param url: The url of the endpoint to hit
-    :param params: The parameters to tack onto the request
-    :return: A deferred object
-    """
-    log.msg("<<< ROUTE >>>>", url)
-    #
-    # TODO: this routine expects to hit an endpoint using parameters passed in the path
-    # TODO: we will need additional routines for parameters passed by (for example) search string
-    #
-    def status_check(response):
-        """
-        Check the return status of a request, if we get a 200 we can continue, otherwise raise an
-        error, which will stop the pipeline ultimately returning an errored deferred which should
-        register when we check the return results, before we assemble the return data object.
-
-        :param response: The incoming response object
-        :return: The response object (we're just a link in the pipeline)
-        """
-        log.msg("<< WE GOT HERE>>")
-        if response.code != 200:
-            raise UserError
-        return response
-
-    route = router.route(url)
-    if not route:
-        raise NoRouteError
-    path = '{}/{}'.format(route.txt, params)
-    log.msg("Calling: ", path)
-    return treq.get(path).addCallback(status_check).addCallback(treq.content)
 
 
 class ONSAggregation(object):
@@ -106,47 +63,11 @@ class ONSAggregation(object):
             ex[key] = ex[key].replace('Z', '')
             ex[key + 'Formatted'] = arrow.get(ex[key], self.inputDateFormat).format(self.outputDateFormat)
 
-    @staticmethod
-    def access(request, endpoint, chain, params):
+    def pipeline(self, result, request, pipe):
 
-        def check_result(response):
-            if type(response) == str:
-                request.setResponseCode(500)
-                return response
-            request.setResponseCode(response.code)
-            if response.code != 200:
-                return str(response)
-
-            if chain:
-                return treq.content(response).addCallback(chain, request, params)
-            else:
-                return treq.content(response)
-
-        route = router.route(endpoint)
-        if not route:
-            request.setResponseCode(500)
-            return 'no route to host'
-        return treq.get('{}/{}'.format(route.txt, params['key'])).addCallback(check_result)
-
-    def access2(self, *args, **kwargs):
-        #request, pipeline):
-
-        print("Args>", args)
-        print("KW>", kwargs)
-
-        request = args[0]
-        pipeline = args[1]
-
-        log.msg("----Request>", request)
-        log.msg("----Pipelin>", pipeline)
-
-        head, *tail = pipeline
+        head, *tail = pipe
         endpoint, chain, params = head
 
-        log.msg("Endpoint>", endpoint)
-        log.msg("Chain>", chain)
-        log.msg("Params>", params)
-
         def check_result(response):
             if type(response) == str:
                 request.setResponseCode(500)
@@ -154,27 +75,21 @@ class ONSAggregation(object):
             request.setResponseCode(response.code)
             if response.code != 200:
                 return str(response)
-
             deferred = treq.content(response)
             if chain:
                 deferred.addCallback(chain, request, params)
                 if len(tail):
-                    log.msg("****************************")
-                    log.msg(">>", tail)
-                    deferred.addCallback(self.access2, request, tail)
+                    deferred.addCallback(self.pipeline, request, tail)
             return deferred
-
         route = router.route(endpoint)
         if not route:
             request.setResponseCode(500)
             return 'no route to host'
-
-        log.msg("*******")
-        log.msg("Params>", params)
-        log.msg("*******")
-
-        return treq.get('{}/{}'.format(route.txt, params['key'])).addCallback(check_result)
-
+        if 'ref' in params:
+            key = result[1][params['ref']]
+        else:
+            key = params['key']
+        return treq.get('{}/{}'.format(route.txt, key)).addCallback(check_result)
 
     def my_survey(self, cases, request, params):
 
@@ -182,48 +97,36 @@ class ONSAggregation(object):
         cases = loads(cases.decode())
 
         def pipe(data, request, params):
-            log.msg("PACKET_______________>", params)
-            pkt = results[params['case_id']][params['tag']] = loads(data.decode())
-            if 'ref' in params:
-                params['key'] = pkt[params['ref']]
-                log.msg('** Setting "{}" to "{}"'.format(params['ref'], params['key']))
-            return True, None
+            result = results[params['idx']][params['tag']] = loads(data.decode())
+            if 'code' in params:
+                params['code'](result)
+            return True, result
 
-        #def next2(blob, request, params):
-        #    results[params['case_id']][params['tag']] = loads(blob.decode())
-        #    self.fix_dates(results[params['case_id']][params['tag']])
-        #    return self.access(request, self.SURVEY_GET, next1, {'case_id': params['case_id'], 'key': ex['surveyId'], 'tag': 'surveyData'})
-
-        dlist = [self.access(request, self.RESPONDENTS_GET, None, params)]
+        deferred_list = [self.pipeline(None, request, [[self.RESPONDENTS_GET, None, {'key': params['key']}]])]
         for case in cases:
-
             case_id = case['id']
             business_id = case['caseGroup']['partyId']
             exercise_id = case['caseGroup']['collectionExerciseId']
             results[case_id] = {'case': case}
             results[case_id]['status'] = self.calculate_case_status(case['caseEvents']).lower()
-            #business = self.access(request, self.BUSINESS_GET, next1, {'case_id': case_id, 'key': business_id, 'tag': 'businessData'})
-            #exercise = self.access(request, self.EXERCISE_GET, next2, {'case_id': case_id, 'key': exercise_id, 'tag': 'collectionExerciseData'})
-
-            exercise = self.access2(request, [
-                [self.EXERCISE_GET, pipe, {'case_id': case_id, 'key': exercise_id, 'tag': 'collectionExerciseData'}],
-                [self.SURVEY_GET,   pipe, {'case_id': case_id, 'ref': 'surveyId',  'tag': 'surveyData', 'code': self.fix_dates}]
+            business = self.pipeline(None, request, [
+                [self.BUSINESS_GET, pipe, {'idx': case_id, 'key': business_id, 'tag': 'businessData'}]
             ])
-            dlist += [exercise]
-            #dlist += [business, exercise]
+            exercise = self.pipeline(None, request, [
+                [self.EXERCISE_GET, pipe, {'idx': case_id, 'key': exercise_id, 'tag': 'collectionExerciseData', 'code': self.fix_dates}],
+                [self.SURVEY_GET,   pipe, {'idx': case_id, 'ref': 'surveyId', 'tag': 'surveyData'}]
+            ])
+            deferred_list += [business, exercise]
 
-        log.msg(dlist)
-
-        def done(deferreds):
+        def all_complete(deferreds):
             for deferred in deferreds:
-                log.msg("Def>", deferred)
                 if not deferred[0]:
                     request.setResponseCode(500)
                     return deferred[1] if deferred[1] == str else deferred[1].getErrorMessage()
 
             return dumps({'userData': loads(deferreds[0][1].decode()), 'rows': list(results.values())})
 
-        return DeferredList(dlist).addCallback(done)
+        return DeferredList(deferred_list).addCallback(all_complete)
 
 
 
@@ -381,3 +284,38 @@ class ONSAggregation(object):
         request.write(jsonify({'userData': loads(deferreds[0][1].decode()), 'rows': rows}))
         request.finish()
 #        return make_response(jsonify({'userData': loads(deferreds[0][1].decode()), 'rows': rows}), 200)
+
+
+def hit_route(url, params):
+    """
+    Excercise a remote endpoint
+
+    :param url: The url of the endpoint to hit
+    :param params: The parameters to tack onto the request
+    :return: A deferred object
+    """
+    log.msg("<<< ROUTE >>>>", url)
+    #
+    # TODO: this routine expects to hit an endpoint using parameters passed in the path
+    # TODO: we will need additional routines for parameters passed by (for example) search string
+    #
+    def status_check(response):
+        """
+        Check the return status of a request, if we get a 200 we can continue, otherwise raise an
+        error, which will stop the pipeline ultimately returning an errored deferred which should
+        register when we check the return results, before we assemble the return data object.
+
+        :param response: The incoming response object
+        :return: The response object (we're just a link in the pipeline)
+        """
+        log.msg("<< WE GOT HERE>>")
+        if response.code != 200:
+            raise UserError
+        return response
+
+    route = router.route(url)
+    if not route:
+        raise NoRouteError
+    path = '{}/{}'.format(route.txt, params)
+    log.msg("Calling: ", path)
+    return treq.get(path).addCallback(status_check).addCallback(treq.content)

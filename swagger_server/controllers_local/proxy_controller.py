@@ -32,8 +32,8 @@ def get_secret(*args, **kwargs):
 def register(*args, **kwargs):
     """Test endpoint"""
     request = args[1]
-    print("Args>", args)
-    print("KWArgs>", kwargs)
+#    print("Args>", args)
+#    print("KWArgs>", kwargs)
     details = request.content.read().decode('utf-8')
     return router.register(request, details)
 
@@ -79,8 +79,8 @@ def mygateway():
 
 
 def ping(*args, **kwargs):
-    print("Args>", args)
-    print("KWArgs>", kwargs)
+    ##print("Args>", args)
+    #print("KWArgs>", kwargs)
     request = args[1]
     host = kwargs.get('host')
     port = kwargs.get('port')
@@ -99,8 +99,6 @@ def survey_todo(*args, **kwargs): #id=None, status_filter=None):
     :param status_filter: The statuses we're interested in
     :return: A data object suitable for producing "mySurveys"
     """
-    print("Main Args>", args)
-
     request = args[1]
     party_id = kwargs.get('partyId', '')
 
@@ -118,15 +116,9 @@ def survey_todo(*args, **kwargs): #id=None, status_filter=None):
         request.setResponseCode(500)
         return '"status filter" needs to be a JSON format list of statuses'
 
-    return aggregator.access(request, aggregator.CASES_GET, aggregator.my_survey, {
-        'key': party_id,
-        'status_filter': status_filter
-    })
-
-    #return aggregator.lookup_cases_by_party(request, party_id)
-    #    .addCallback(aggregator.my_survey, request, party_id)
-
-
+    return aggregator.pipeline(None, request, [
+        [aggregator.CASES_GET, aggregator.my_survey, {'key': party_id, 'status_filter': status_filter}]
+    ])
 
 
 def benchmark(a,b):

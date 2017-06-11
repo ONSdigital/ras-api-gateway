@@ -8,18 +8,27 @@
 from flask import jsonify, make_response
 from json import loads
 from twisted.web import client
+from twisted.web.server import NOT_DONE_YET
 from twisted.internet.error import ConnectionRefusedError, NoRouteError, UserError
-from twisted.internet.defer import DeferredList
+from twisted.internet.defer import DeferredList, Deferred
 from ras_api_gateway.proxy_router import router
 import treq
 import arrow
-from crochet import wait_for, no_setup
-no_setup()
+from twisted.python import log
+from json import dumps
+#from crochet import wait_for, no_setup
+#no_setup()
 #
 #   We don't really want the default logging 'noise' associated with HTTP client requests
 #
 client._HTTP11ClientFactory.noisy = False
 
+
+def hit_me(*args, **kwargs):
+    print("HIT ME")
+    print("Args>", args)
+    print("KWArgs>", kwargs)
+    return "Bye!"
 
 def hit_route(url, params):
     """
@@ -29,6 +38,7 @@ def hit_route(url, params):
     :param params: The parameters to tack onto the request
     :return: A deferred object
     """
+    log.msg("<<< ROUTE >>>>", url)
     #
     # TODO: this routine expects to hit an endpoint using parameters passed in the path
     # TODO: we will need additional routines for parameters passed by (for example) search string
@@ -42,6 +52,7 @@ def hit_route(url, params):
         :param response: The incoming response object
         :return: The response object (we're just a link in the pipeline)
         """
+        log.msg("<< WE GOT HERE>>")
         if response.code != 200:
             raise UserError
         return response
@@ -49,7 +60,9 @@ def hit_route(url, params):
     route = router.route(url)
     if not route:
         raise NoRouteError
-    return treq.get('{}/{}'.format(route.txt, params)).addCallback(status_check).addCallback(treq.content)
+    path = '{}/{}'.format(route.txt, params)
+    log.msg("Calling: ", path)
+    return treq.get(path).addCallback(status_check).addCallback(treq.content)
 
 
 class ONSAggregation(object):
@@ -88,17 +101,147 @@ class ONSAggregation(object):
             status = 'Not started'
         return status
 
-    @wait_for(timeout=5)
-    def lookup_cases(self, party_id):
-        """
-        Excercise an endpoint making sure we call it in the Twisted reactor (and block for a result)
+    def fix_dates(self, ex):
+        for key in ['periodStart', 'periodEnd', 'scheduledReturn']:
+            ex[key] = ex[key].replace('Z', '')
+            ex[key + 'Formatted'] = arrow.get(ex[key], self.inputDateFormat).format(self.outputDateFormat)
 
-        :param party_id: The partyId to search for
-        :return: A Case record
-        """
-        return hit_route(self.CASES_GET, party_id)
+    @staticmethod
+    def access(request, endpoint, chain, params):
 
-    def survey_todo(self, party_id, status_filter):
+        def check_result(response):
+            if type(response) == str:
+                request.setResponseCode(500)
+                return response
+            request.setResponseCode(response.code)
+            if response.code != 200:
+                return str(response)
+
+            if chain:
+                return treq.content(response).addCallback(chain, request, params)
+            else:
+                return treq.content(response)
+
+        route = router.route(endpoint)
+        if not route:
+            request.setResponseCode(500)
+            return 'no route to host'
+        return treq.get('{}/{}'.format(route.txt, params['key'])).addCallback(check_result)
+
+    def access2(self, *args, **kwargs):
+        #request, pipeline):
+
+        print("Args>", args)
+        print("KW>", kwargs)
+
+        request = args[0]
+        pipeline = args[1]
+
+        log.msg("----Request>", request)
+        log.msg("----Pipelin>", pipeline)
+
+        head, *tail = pipeline
+        endpoint, chain, params = head
+
+        log.msg("Endpoint>", endpoint)
+        log.msg("Chain>", chain)
+        log.msg("Params>", params)
+
+        def check_result(response):
+            if type(response) == str:
+                request.setResponseCode(500)
+                return response
+            request.setResponseCode(response.code)
+            if response.code != 200:
+                return str(response)
+
+            deferred = treq.content(response)
+            if chain:
+                deferred.addCallback(chain, request, params)
+                if len(tail):
+                    log.msg("****************************")
+                    log.msg(">>", tail)
+                    deferred.addCallback(self.access2, request, tail)
+            return deferred
+
+        route = router.route(endpoint)
+        if not route:
+            request.setResponseCode(500)
+            return 'no route to host'
+
+        log.msg("*******")
+        log.msg("Params>", params)
+        log.msg("*******")
+
+        return treq.get('{}/{}'.format(route.txt, params['key'])).addCallback(check_result)
+
+
+    def my_survey(self, cases, request, params):
+
+        results = {}
+        cases = loads(cases.decode())
+
+        def pipe(data, request, params):
+            log.msg("PACKET_______________>", params)
+            pkt = results[params['case_id']][params['tag']] = loads(data.decode())
+            if 'ref' in params:
+                params['key'] = pkt[params['ref']]
+                log.msg('** Setting "{}" to "{}"'.format(params['ref'], params['key']))
+            return True, None
+
+        #def next2(blob, request, params):
+        #    results[params['case_id']][params['tag']] = loads(blob.decode())
+        #    self.fix_dates(results[params['case_id']][params['tag']])
+        #    return self.access(request, self.SURVEY_GET, next1, {'case_id': params['case_id'], 'key': ex['surveyId'], 'tag': 'surveyData'})
+
+        dlist = [self.access(request, self.RESPONDENTS_GET, None, params)]
+        for case in cases:
+
+            case_id = case['id']
+            business_id = case['caseGroup']['partyId']
+            exercise_id = case['caseGroup']['collectionExerciseId']
+            results[case_id] = {'case': case}
+            results[case_id]['status'] = self.calculate_case_status(case['caseEvents']).lower()
+            #business = self.access(request, self.BUSINESS_GET, next1, {'case_id': case_id, 'key': business_id, 'tag': 'businessData'})
+            #exercise = self.access(request, self.EXERCISE_GET, next2, {'case_id': case_id, 'key': exercise_id, 'tag': 'collectionExerciseData'})
+
+            exercise = self.access2(request, [
+                [self.EXERCISE_GET, pipe, {'case_id': case_id, 'key': exercise_id, 'tag': 'collectionExerciseData'}],
+                [self.SURVEY_GET,   pipe, {'case_id': case_id, 'ref': 'surveyId',  'tag': 'surveyData', 'code': self.fix_dates}]
+            ])
+            dlist += [exercise]
+            #dlist += [business, exercise]
+
+        log.msg(dlist)
+
+        def done(deferreds):
+            for deferred in deferreds:
+                log.msg("Def>", deferred)
+                if not deferred[0]:
+                    request.setResponseCode(500)
+                    return deferred[1] if deferred[1] == str else deferred[1].getErrorMessage()
+
+            return dumps({'userData': loads(deferreds[0][1].decode()), 'rows': list(results.values())})
+
+        return DeferredList(dlist).addCallback(done)
+
+
+
+    #============================================================================================================
+
+
+    #@inlineCallbacks
+    #def lookup_cases(self, party_id):
+    #    """
+    #    Excercise an endpoint making sure we call it in the Twisted reactor (and block for a result)
+
+    #    :param party_id: The partyId to search for
+    #    :return: A Case record
+    #    """
+    #    result = yield hit_route(self.CASES_GET, party_id)
+    #    return result
+
+    def survey_todo(self, request, party_id, status_filter):
         """
         Generate the TODO data for the mySurveys page. This involves making a number of cross-MS
         API calls and aggregating multiple objects types into a single structure. The process is essentially;
@@ -127,14 +270,30 @@ class ONSAggregation(object):
         #   TODO: add logging for error cases
         #
         try:
-            cases = loads(self.lookup_cases(party_id).decode())
+            #result = self.lookup_cases(party_id)
+            log.msg("Result=", "???")
+            #cases = loads(result.decode())
+
+            def scatter(result):
+                log.msg(">>", result)
+                #request.write("<OK>")
+                #request.finish()
+                return
+
+            deferred = hit_route(self.CASES_GET, party_id)
+            deferred.addCallback(scatter)
+            return NOT_DONE_YET
         except ConnectionRefusedError:
             return make_response('case service is not responding', 500)
         except NoRouteError:
             return make_response('no route to case service', 500)
         except UserError:
+            request.setResponseCode(404)
+            return 'no such party id "{}"'.format(party_id)
             return make_response('no such party id "{}"'.format(party_id), 404)
         except Exception as e:
+            request.setResponseCode(500)
+            return str(e)
             return make_response(str(e), 500)
 
         def attach(blob, case_id, key):
@@ -157,7 +316,8 @@ class ONSAggregation(object):
         #
         results = {}
 
-        @wait_for(timeout=5)
+        #@wait_for(timeout=5)
+        #@inlineCallbacks
         def fetch_rows():
             """
             This is the fan-out routine which will generate endpoint requests. Each request has an associated
@@ -184,7 +344,7 @@ class ONSAggregation(object):
                 dlist += [business, exercise]
             return DeferredList(dlist)
 
-        deferreds = fetch_rows()
+        deferreds = [] #yield fetch_rows()
         #
         #   We arrive back here when all the deferred requests in fetch_rows have completed. (thanks to the
         #   'wait_for' decorator on fetch_rows. At this point each deferred is a tuple of (True|False) and
@@ -218,4 +378,6 @@ class ONSAggregation(object):
                     'surveyData': item['survey'],
                     'status': item_status
                 })
-        return make_response(jsonify({'userData': loads(deferreds[0][1].decode()), 'rows': rows}), 200)
+        request.write(jsonify({'userData': loads(deferreds[0][1].decode()), 'rows': rows}))
+        request.finish()
+#        return make_response(jsonify({'userData': loads(deferreds[0][1].decode()), 'rows': rows}), 200)

@@ -60,32 +60,35 @@ class Router(ProxyTools):
         return self._hosts[key].strftime('%c')
 
     def setup(self):
-        self.register(dumps({
-            'protocol':'http',
-            'host': 'localhost',
-            'port': '5000',
-            'uri': '/'
-        }))
+        #self.register(None, dumps({
+        #    'protocol':'http',
+        #    'host': 'localhost',
+        #    'port': '5000',
+        #    'uri': '/'
+        #}))
         for endpoint in ['register', 'unregister', 'status', 'ui/', 'ui/css', 'ui/lib',
-                         'ui/images', 'swagger.json', 'mygateway', 'ping', 'surveys/todo', 'benchmark']:
-            self.register(dumps({
+                         'ui/images', 'swagger.json', 'mygateway', 'ping', 'benchmark', 'surveys/todo']:
+            self.register(None, dumps({
                 'protocol': 'http',
                 'host': 'localhost',
                 'port': '8079',
                 'uri': '/api/1.0.0/'+endpoint
             }))
 
-    def register(self, details):
+    def register(self, request, details):
         try:
             details = loads(details)
         except decoder.JSONDecodeError:
-            return 500, {'text': 'parameter is bad JSON'}
+            request.setResponseCode(500)
+            return 'parameter is bad JSON'
 
         if type(details) != dict:
-            return 500, {'text': 'bad parameters, not JSON'}
+            request.setResponseCode(500)
+            return 'parameter is not dict'
         for attribute in ['protocol', 'host', 'port', 'uri']:
             if attribute not in details:
-                return 500, {'text': "attribute '{}' is missing".format(attribute)}
+                request.setResponseCode(500)
+                return "attribute '{}' is missing".format(attribute)
 
         self.add(Route(
             details['protocol'],
@@ -96,7 +99,7 @@ class Router(ProxyTools):
         print('registered "{uri}"'.format(**details))
         key = '{}:{}'.format(details['host'], details['port'])
         self._hosts[key] = datetime.now()
-        return 200, {'text': 'endpoint registered successfully'}
+        return 'endpoint registered successfully'
 
     def add(self, route):
         self.routing_table[route.uri.decode()] = route
@@ -118,12 +121,13 @@ class Router(ProxyTools):
             routes.append(route.txt())
         return 200, {'routes': routes}
 
-    def ping(self, host, port):
+    def ping(self, request, host, port):
         key = '{}:{}'.format(host, port)
         if key in self._hosts:
             self._hosts[key] = datetime.now()
-            return 200, 'OK'
+            return "OK"
         else:
-            return 204, 'not registered'
+            request.setResponseCode(204)
+            return "OK"
 
 router = Router()

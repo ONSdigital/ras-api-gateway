@@ -7,11 +7,14 @@
 ##############################################################################
 from flask import jsonify, make_response
 from ras_api_gateway.proxy_router import router
+from twisted.web.server import NOT_DONE_YET
 from json import loads
 from jinja2 import Environment, FileSystemLoader
 from ..configuration import ons_env
 import twisted.internet._sslverify as v
 from .aggregation import ONSAggregation
+from twisted.python import log
+
 #
 #   Disable SSL tail certificate verification
 #
@@ -26,10 +29,13 @@ def get_secret(*args, **kwargs):
     return make_response(jsonify("This is a secret"), 200)
 
 
-def register(details):
+def register(*args, **kwargs):
     """Test endpoint"""
-    code, msg = router.register(details)
-    return make_response(jsonify(msg), code)
+    request = args[1]
+    print("Args>", args)
+    print("KWArgs>", kwargs)
+    details = request.content.read().decode('utf-8')
+    return router.register(request, details)
 
 
 def unregister(host):
@@ -72,17 +78,20 @@ def mygateway():
         return "FAIL", 404
 
 
-def ping(host, port):
-    code, msg = router.ping(host, port)
-    return make_response(msg, code)
+def ping(*args, **kwargs):
+    print("Args>", args)
+    print("KWArgs>", kwargs)
+    request = args[1]
+    host = kwargs.get('host')
+    port = kwargs.get('port')
+    return router.ping(request, host, port)
+    #code, msg = router.ping(host, port)
+    #return make_response(msg, code)
 
-from twisted.python import log
-from sys import stdout
-log.startLogging(stdout)
-
-in_flight = 0
-
-def survey_todo(id=None, status_filter=None):
+#
+#   Ok, this needs to go through a layer that assigns KW args
+#
+def survey_todo(*args, **kwargs): #id=None, status_filter=None):
     """
     Call the TODO aggregated endpoint.
 
@@ -90,23 +99,36 @@ def survey_todo(id=None, status_filter=None):
     :param status_filter: The statuses we're interested in
     :return: A data object suitable for producing "mySurveys"
     """
-    global in_flight
+    print("Main Args>", args)
 
-    in_flight += 1
-    log.msg("++ In-flight: ", in_flight)
-    response = aggregator.survey_todo(id, loads(status_filter))
-    in_flight -= 1
-    log.msg("-- In-flight: ", in_flight)
-    return response
+    request = args[1]
+    party_id = kwargs.get('partyId', '')
+
+    if b'status_filter' not in request.args:
+        request.setResponseCode(500)
+        return 'status_filter parameter is missing'
+
+    try:
+        status_filter = loads(request.args[b'status_filter'][0].decode())
+    except Exception:
+        request.setResponseCode(500)
+        return 'unable to parse "status_filter"'
+
+    if type(status_filter) != list:
+        request.setResponseCode(500)
+        return '"status filter" needs to be a JSON format list of statuses'
+
+    return aggregator.access(request, aggregator.CASES_GET, aggregator.my_survey, {
+        'key': party_id,
+        'status_filter': status_filter
+    })
+
+    #return aggregator.lookup_cases_by_party(request, party_id)
+    #    .addCallback(aggregator.my_survey, request, party_id)
 
 
-def benchmark():
-    global in_flight
 
-    in_flight += 1
-    log.msg("++ In-flight: ", in_flight)
-    response = make_response(jsonify("unregister"), 200)
-    in_flight -= 1
-    log.msg("-- In-flight: ", in_flight)
-    return response
+
+def benchmark(a,b):
+    return "OK"
 

@@ -95,7 +95,7 @@ class Router(ProxyTools):
         self.routing_table[route.uri.decode()] = route
 
     def route(self, uri):
-        parts = uri.split('/')
+        parts = uri.split('?')[0].split('/')
         while len(parts):
             test = '/'.join(parts)
             if test in self.routing_table:

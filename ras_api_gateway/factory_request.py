@@ -14,6 +14,13 @@ from datetime import datetime, timedelta
 from .ons_jwt import my_token
 from swagger_server.configuration import ons_env
 
+jwt_token = {
+    'expires_at': (datetime.now() + timedelta(seconds=6000)).timestamp(),
+    'scope': ['ci:read', 'ci:write']
+}
+jwt = my_token.encode(jwt_token).encode()
+
+
 class ProxyRequest(proxy.ProxyRequest, ProxyTools):
     """ this is where the transaction is initially received """
     protocols = dict(http=ProxyClientFactory, https=ProxyClientFactory)
@@ -28,14 +35,9 @@ class ProxyRequest(proxy.ProxyRequest, ProxyTools):
         if route:
             headers[b'host'] = route.host.encode()
             if ons_env.fake_jwt:
-                jwt = {
-                    'expires_at': (datetime.now() + timedelta(seconds=6000)).timestamp(),
-                    'scope': ['ci:read', 'ci:write']
-                }
-                headers[b'authorization'] = my_token.encode(jwt).encode()
+                headers[b'authorization'] = jwt
 
             class_ = self.protocols[route.proto]
-            #self.syslog("=> {} {} {} {} {}".format(self.method, self.clientproto, route.host, route.port, self.uri))
             client_factory = class_(self.method, self.uri, self.clientproto, headers, data, self)
             if route.ssl:
                 reactor.connectSSL(route.host, route.port, client_factory, ssl.CertificateOptions())

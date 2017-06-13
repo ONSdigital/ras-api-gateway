@@ -18,6 +18,7 @@ class Route(object):
         self._uri = uri
         self._ui = uri.rstrip('/').split('/')[-1] == 'ui'
 
+    @property
     def txt(self):
         return '{}://{}:{}{}'.format(self._proto, self._host, self._port, self._uri)
 
@@ -59,8 +60,14 @@ class Router(ProxyTools):
         return self._hosts[key].strftime('%c')
 
     def setup(self):
+        self.register(dumps({
+            'protocol':'http',
+            'host': 'localhost',
+            'port': '5000',
+            'uri': '/'
+        }))
         for endpoint in ['register', 'unregister', 'status', 'ui/', 'ui/css', 'ui/lib',
-                         'ui/images', 'swagger.json', 'mygateway', 'ping', 'surveys/todo']:
+                         'ui/images', 'swagger.json', 'mygateway', 'ping', 'surveys/todo', 'benchmark']:
             self.register(dumps({
                 'protocol': 'http',
                 'host': 'localhost',

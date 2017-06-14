@@ -201,7 +201,7 @@ def survey_todo_process(party_id, status_filter):
         if not deferred[0]:
             return deferred[1] if deferred[1] == str else deferred[1].getErrorMessage(), 500
     for item in results.values():
-        item_status = calculate_case_status(item['case']['caseEvents']).lower()
+        item_status = calculate_case_status(item['case']['caseEvents'])
         if item_status in status_filter:
             rows.append({
                 'businessData': item['business'],

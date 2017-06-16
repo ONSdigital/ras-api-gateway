@@ -40,8 +40,30 @@ def unregister(host):
 def status(*args, **kwargs):
     """Test endpoint"""
     try:
-        code, msg = router.status()
-        return make_response(jsonify(msg), code)
+        proto = ons_env.get('protocol')
+        host = ons_env.get('api_gateway')
+        port = 443 if proto == 'https' else 8080
+        base = '{}://{}:{}'.format(proto, host, port)
+        #template = env.get_template('mygateway.html')
+        items = []
+        for endpoint in router.routing_table:
+            route = router.routing_table[endpoint]
+            if route.is_ui:
+                items.append([
+                    'Unknown microservice',
+                    '<a href="{}{}">{}</a>'.format(base, route.uri.decode(), route.uri.decode()),
+                    '{}:{}'.format(route.host, route.port),
+                    route.last_seen,
+                    route.status
+                ])
+        result = {
+            'draw': 1,
+            'recordsTotal': len(items),
+            'recordsFiltered': len(items),
+            'data': items
+        }
+        print(result)
+        return make_response(jsonify(result), 200)
     except Exception as e:
         print(e)
 
@@ -63,7 +85,7 @@ def mygateway():
                     'url': '{}{}'.format(base, route.uri.decode()),
                     'uri': route.uri.decode(),
                     'host': '{}:{}'.format(route.host, route.port),
-                    'last': router.last_seen(route)})
+                    'last': route.last_seen})
 
         rendered = template.render({'routes': items})
         return make_response(rendered, 200)

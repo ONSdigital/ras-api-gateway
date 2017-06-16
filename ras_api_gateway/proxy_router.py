@@ -7,7 +7,7 @@
 ##############################################################################
 from .proxy_tools import ProxyTools
 from json import loads, dumps, decoder
-from datetime import datetime
+from datetime import datetime, timedelta
 
 class Route(object):
 
@@ -16,6 +16,7 @@ class Route(object):
         self._host = host
         self._port = port
         self._uri = uri
+        self._last = None
         self._ui = uri.rstrip('/').split('/')[-1] == 'ui'
 
     @property
@@ -46,18 +47,33 @@ class Route(object):
     def is_ui(self):
         return self._ui
 
+    def ping(self):
+        self._last = datetime.now()
+        print("--", self._last)
+
+    @property
+    def is_local(self):
+        return self._port == 8079 and self._host == 'localhost'
+
+    @property
+    def last_seen(self):
+        if self.is_local:
+            return 'Always Online'
+        return self._last #.strftime('%c')
+
+    @property
+    def status(self):
+        return "OK"
+        if timedelta(datetime.now(), self._last) < 8:
+            return "UP"
+        return "DOWN"
+
 
 class Router(ProxyTools):
 
     def __init__(self):
         self.routing_table = {}
         self._hosts = {}
-
-    def last_seen(self, route):
-        key = '{}:{}'.format(route.host, route.port)
-        if key not in self._hosts:
-            return "Not seen yet"
-        return self._hosts[key].strftime('%c')
 
     def setup(self):
         self.register(dumps({
@@ -119,11 +135,12 @@ class Router(ProxyTools):
         return 200, {'routes': routes}
 
     def ping(self, host, port):
-        key = '{}:{}'.format(host, port)
-        if key in self._hosts:
-            self._hosts[key] = datetime.now()
-            return 200, 'OK'
-        else:
-            return 204, 'not registered'
+        for route in self.routing_table.values():
+            print("@@@@@@@@@@",host,port, route.is_ui, route.txt)
+            if route.port == port and route.host == host and route.is_ui:
+                route.ping()
+                return 200, 'OK'
+
+        return 204, 'not registered'
 
 router = Router()

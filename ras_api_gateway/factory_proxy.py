@@ -18,4 +18,5 @@ class Proxy(proxy.Proxy):
 
 class ProxyFactory(http.HTTPFactory, ProxyTools):
     protocol = Proxy
+    noisy = False
 

@@ -5,9 +5,8 @@
 #   Copyright (c) 2017 Crown Copyright (Office for National Statistics)      #
 #                                                                            #
 ##############################################################################
-from crochet import no_setup
-no_setup()
-
+from twisted.internet import epollreactor
+epollreactor.install()
 from twisted.internet import reactor
 from twisted.python import log
 from twisted.web import client
@@ -24,11 +23,11 @@ if __name__ == '__main__':
     ons_env.activate()
     logging.getLogger('twisted').setLevel(logging.DEBUG)
     log.startLogging(stdout)
-    client._HTTP11ClientFactory.noisy = True
+    client._HTTP11ClientFactory.noisy = False
     app = App(__name__, specification_dir='../swagger_server/swagger/')
     CORS(app.app)
     app.add_api('swagger.yaml', arguments={'title': 'ONS Microservice'})
-    reactor.suggestThreadPoolSize(30)
+    reactor.suggestThreadPoolSize(200)
     reactor.listenTCP(8080, ProxyFactory())
     reactor.callLater(1, router.setup)
     Twisted(app).run(port=8079)

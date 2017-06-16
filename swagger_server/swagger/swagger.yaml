@@ -46,6 +46,14 @@ paths:
         500: {description: server error}
       x-swagger-router-controller: swagger_server.controllers_local.proxy_controller
 
+  /benchmark:
+    get:
+      operationId: benchmark
+      responses:
+        200: {description: status supplied}
+        500: {description: server error}
+      x-swagger-router-controller: swagger_server.controllers_local.proxy_controller
+
   /mygateway:
     get:
       operationId: mygateway

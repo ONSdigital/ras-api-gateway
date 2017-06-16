@@ -35,7 +35,11 @@ class ProxyRequest(proxy.ProxyRequest, ProxyTools):
         if route:
             headers[b'host'] = route.host.encode()
             if ons_env.fake_jwt:
+                self.syslog('*** INSERTING JWT ***')
                 headers[b'authorization'] = jwt
+            else:
+                self.syslog('*** RUNNING IN SECURE MODE ***')
+
 
             class_ = self.protocols[route.proto]
             client_factory = class_(self.method, self.uri, self.clientproto, headers, data, self)

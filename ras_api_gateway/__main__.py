@@ -5,30 +5,22 @@
 #   Copyright (c) 2017 Crown Copyright (Office for National Statistics)      #
 #                                                                            #
 ##############################################################################
-from twisted.internet import epollreactor
-epollreactor.install()
+from ons_ras_common import ons_env
 from twisted.internet import reactor
-from twisted.python import log
-from twisted.web import client
-from flask_twisted import Twisted
-from sys import stdout
 from ras_api_gateway.factory_proxy import ProxyFactory
-from swagger_server.configuration import ons_env
-from connexion import App
-from flask_cors import CORS
-from ras_api_gateway.proxy_router import router
-import logging
+#from ras_api_gateway.host import router
+from ras_api_gateway.host import router
 
 if __name__ == '__main__':
-    ons_env.activate()
-    logging.getLogger('twisted').setLevel(logging.DEBUG)
-    log.startLogging(stdout)
-    client._HTTP11ClientFactory.noisy = False
-    app = App(__name__, specification_dir='../swagger_server/swagger/')
-    CORS(app.app)
-    app.add_api('swagger.yaml', arguments={'title': 'ONS Microservice'})
-    reactor.suggestThreadPoolSize(200)
-    reactor.listenTCP(8080, ProxyFactory())
-    reactor.callLater(1, router.setup)
-    Twisted(app).run(port=8079)
+
+    def callback(app):
+        reactor.suggestThreadPoolSize(200)
+        reactor.listenTCP(8080, ProxyFactory())
+        reactor.callLater(0, router.activate)
+
+    ons_env.activate(callback)
+
+    #logging.getLogger('twisted').setLevel(logging.DEBUG)
+    #log.startLogging(stdout)
+    #client._HTTP11ClientFactory.noisy = False
 

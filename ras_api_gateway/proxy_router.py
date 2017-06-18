@@ -6,70 +6,73 @@
 #                                                                            #
 ##############################################################################
 from .proxy_tools import ProxyTools
+from .route import Route
 from json import loads, dumps, decoder
-from datetime import datetime, timedelta
-
-class Route(object):
-
-    def __init__(self, proto, host, port, uri):
-        self._proto = proto
-        self._host = host
-        self._port = port
-        self._uri = uri
-        self._last = None
-        self._ui = uri.rstrip('/').split('/')[-1] == 'ui'
-
-    @property
-    def txt(self):
-        return '{}://{}:{}{}'.format(self._proto, self._host, self._port, self._uri)
-
-    @property
-    def proto(self):
-        return self._proto
-
-    @property
-    def host(self):
-        return self._host
-
-    @property
-    def port(self):
-        return int(self._port)
-
-    @property
-    def uri(self):
-        return self._uri.encode()
-
-    @property
-    def ssl(self):
-        return self._proto == 'https'
-
-    @property
-    def is_ui(self):
-        return self._ui
-
-    def ping(self):
-        self._last = datetime.now()
-        print("--", self._last)
-
-    @property
-    def is_local(self):
-        return self._port == 8079 and self._host == 'localhost'
-
-    @property
-    def last_seen(self):
-        if self.is_local:
-            return 'Always Online'
-        return self._last #.strftime('%c')
-
-    @property
-    def status(self):
-        return "OK"
-        if timedelta(datetime.now(), self._last) < 8:
-            return "UP"
-        return "DOWN"
+from datetime import datetime
+from ons_ras_common import ons_env
 
 
 class Router(ProxyTools):
+
+    def __init__(self):
+        """
+        Initialise our main structures
+        """
+        self._host_table = {}
+        self._route_table = {}
+
+    def info(self, text):
+        ons_env.logger.info('[router] {}'.format(text))
+
+    def activate(self):
+        self.info('Router is running')
+        self.register({
+            'protocol': 'http',
+            'host': 'localhost',
+            'port': ons_env.port,
+            'uri': '/api/1.0.0/register'
+        })
+
+    def register_json(self, details):
+        try:
+            details = loads(details)
+        except decoder.JSONDecodeError:
+            return 500, {'text': 'parameter is bad JSON'}
+        if type(details) != dict:
+            return 500, {'text': 'bad parameters, not JSON'}
+
+        if self.register(details):
+            return 200, {'text': 'endpoint registered successfully'}
+        return 500, {'text': 'invalid endpoint details'}
+
+    def register(self, details):
+        """
+        Register an endpoint
+
+        :param details: Details of the endpoint (dict)
+        :return: Boolean
+        """
+        for attribute in ['protocol', 'host', 'port', 'uri']:
+            if attribute not in details:
+                self.info("attribute '{}' is missing".format(attribute))
+                return False
+
+        self.add(Route(
+            details['protocol'],
+            details['host'],
+            int(details['port']),
+            details['uri']
+        ))
+        self.log('registered "{uri}"'.format(**details))
+        key = '{}:{}'.format(details['host'], details['port'])
+        self._hosts[key] = datetime.now()
+        return True
+
+    def add(self, route):
+        self.routing_table[route.uri.decode()] = route
+
+
+class xRouter(ProxyTools):
 
     def __init__(self):
         self.routing_table = {}
@@ -90,6 +93,11 @@ class Router(ProxyTools):
                 'port': '8079',
                 'uri': '/api/1.0.0/'+endpoint
             }))
+
+
+    def add(self, route):
+        self.routing_table[route.uri.decode()] = route
+
 
     def register(self, details):
         try:

@@ -5,11 +5,11 @@
 #   Copyright (c) 2017 Crown Copyright (Office for National Statistics)      #
 #                                                                            #
 ##############################################################################
+from ons_ras_common import ons_env
 from flask import jsonify, make_response
-from ras_api_gateway.proxy_router import router
+from ras_api_gateway.host import router
 from json import loads
 from jinja2 import Environment, FileSystemLoader
-from ..configuration import ons_env
 import twisted.internet._sslverify as v
 from .aggregation import ONSAggregation
 #

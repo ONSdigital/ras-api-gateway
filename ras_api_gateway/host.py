@@ -6,7 +6,7 @@
 #                                                                            #
 ##############################################################################
 from datetime import datetime
-from json import loads, dumps, decoder
+from json import loads, decoder
 from ons_ras_common import ons_env
 
 
@@ -34,24 +34,14 @@ class Router(object):
             'uri': '/api/1.0.0/ping'
         })
         self._hosts = {}
-        print("Hosts:", self._hosts)
-        print("Endpoints:", self._endpoints)
 
     def route(self, uri):
-        self.info('Attempt to route {}'.format(uri))
         parts = uri.split('?')[0].split('/')
         while len(parts):
             test = '/'.join(parts)
-
-            print("test:", test, type(test), "endpoints:", self._endpoints)
-
-
             if test in self._endpoints:
-                print("F1:", test)
-                print(">>", self._endpoints[test])
                 return self._endpoints[test]
             if test+'/' in self._endpoints:
-                print("F2:", test+'/')
                 return self._endpoints[test + '/']
             parts.pop()
 
@@ -61,16 +51,9 @@ class Router(object):
     def ping(self, host, port):
         key = '{}:{}'.format(host, port)
         if key in self._hosts:
+            self._hosts[key].ping()
             return 200, 'OK'
         return 204, 'not registered'
-
-        #for route in self.routing_table.values():
-        #    print("@@@@@@@@@@",host,port, route.is_ui, route.txt)
-        #    if route.port == port and route.host == host and route.is_ui:
-        #        route.ping()
-        #        return 200, 'OK'
-
-        #return 204, 'not registered'
 
     def register(self, details):
         """
@@ -83,7 +66,7 @@ class Router(object):
                 self.info("attribute '{}' is missing".format(attribute))
                 return False
 
-        self.update(details)
+        return self.update(details)
 
     def update(self, details):
         """
@@ -93,12 +76,13 @@ class Router(object):
         :return: Boolean
         """
         key = '{host}:{port}'.format(**details)
-        if key not in self._hosts:
-            self._hosts[key] = {'registered': datetime.now()}
-
         route = Route(details, key)
         self._endpoints[route.path] = route
+        if key not in self._hosts and route.is_ui:
+            self._hosts[key] = route
+
         self.info('registered "{uri}"'.format(**details))
+        return True
 
     def register_json(self, details):
         try:
@@ -110,6 +94,37 @@ class Router(object):
         if self.register(details):
             return 200, {'text': 'endpoint registered successfully'}
         return 500, {'text': 'invalid endpoint details'}
+
+    @property
+    def host_list(self):
+        items = []
+        proto = ons_env.get('protocol')
+        host = ons_env.get('api_gateway')
+        port = 443 if proto == 'https' else 8080
+        for route in self._hosts.values():
+            base = '{}://{}:{}'.format(proto, host, port)
+            items.append([
+                'Unknown microservice',
+                '<a href="{}{}">{}</a>'.format(base, route.uri.decode(), route.uri.decode()),
+                '{}:{}'.format(route.host, route.port),
+                route.last_seen,
+                route.status_label
+            ])
+        return items
+
+    def expire(self):
+        print("<expire>")
+        for route in self._hosts.values():
+            if route.status != 'UP':
+                print("DOWN: ", route)
+                to_delete = []
+                for key, val in self._endpoints.items():
+                    if route.host == val.host and route.port == val.port:
+                        to_delete.append(key)
+                        print("Deleting endpoint: ", val.uri)
+
+                for key in to_delete:
+                    del self._endpoints[key]
 
 
 class Route(object):
@@ -160,26 +175,33 @@ class Route(object):
     def is_ui(self):
         return self._ui
 
-    def ping(self):
-        self._last = datetime.now()
-        print("--", self._last)
-
     @property
     def is_local(self):
         return self._port == 8079 and self._host == 'localhost'
 
+    def ping(self):
+        self._lastseen = datetime.now()
+
     @property
     def last_seen(self):
-        if self.is_local:
-            return 'Always Online'
-        return self._last #.strftime('%c')
+        return self._lastseen.strftime('%c')
 
     @property
     def status(self):
-        return "OK"
-        if timedelta(datetime.now(), self._last) < 8:
+        if (datetime.now() - self._lastseen).seconds < 8:
             return "UP"
         return "DOWN"
+
+    @property
+    def status_label(self):
+        if (datetime.now() - self._lastseen).seconds < 8:
+            label = 'success'
+            badge = 'Up'
+        else:
+            label = 'danger'
+            badge = 'Down'
+        return '<span class ="label label-{}">{}</span>'.format(label, badge)
+
 
 if 'router' not in globals():
     router = Router()

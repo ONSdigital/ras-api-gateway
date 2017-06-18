@@ -40,6 +40,8 @@ paths:
   /status:
     get:
       operationId: status
+      parameters:
+      - {in: query, name: _, required: false, type: string}
       responses:
         200: {description: status supplied}
         500: {description: server error}

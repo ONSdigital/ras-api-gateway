@@ -35,11 +35,9 @@ class ProxyRequest(proxy.ProxyRequest, ProxyTools):
             self.content.seek(0, 0)
             data = self.content.read()
             route = router.route(self.uri.decode())
-            print('~~~~~~ROUTE:', type(route), route)
             if route:
                 headers[b'host'] = route.host.encode()
                 if not ons_env.is_secure:
-                    self.syslog('<Inserting JWT Token>')
                     headers[b'authorization'] = self.jwt
 
                 class_ = self.protocols[route.proto]

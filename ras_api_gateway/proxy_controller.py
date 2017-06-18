@@ -28,7 +28,7 @@ def get_secret(*args, **kwargs):
 
 def register(details):
     """Test endpoint"""
-    code, msg = router.register(details)
+    code, msg = router.register_json(details)
     return make_response(jsonify(msg), code)
 
 
@@ -45,17 +45,17 @@ def status(*args, **kwargs):
         port = 443 if proto == 'https' else 8080
         base = '{}://{}:{}'.format(proto, host, port)
         #template = env.get_template('mygateway.html')
-        items = []
-        for endpoint in router.routing_table:
-            route = router.routing_table[endpoint]
-            if route.is_ui:
-                items.append([
-                    'Unknown microservice',
-                    '<a href="{}{}">{}</a>'.format(base, route.uri.decode(), route.uri.decode()),
-                    '{}:{}'.format(route.host, route.port),
-                    route.last_seen,
-                    route.status
-                ])
+        items = router.host_list
+        #for endpoint in router.routing_table:
+        #    route = router.routing_table[endpoint]
+        #    if route.is_ui:
+        #        items.append([
+        #            'Unknown microservice',
+        #            '<a href="{}{}">{}</a>'.format(base, route.uri.decode(), route.uri.decode()),
+        #            '{}:{}'.format(route.host, route.port),
+        #            route.last_seen,
+        #            route.status
+        #        ])
         result = {
             'draw': 1,
             'recordsTotal': len(items),
@@ -70,29 +70,8 @@ def status(*args, **kwargs):
 
 def mygateway():
     """Display a custom my-gateway screen"""
-    proto = ons_env.get('protocol')
-    host = ons_env.get('api_gateway')
-    port = 443 if proto == 'https' else 8080
-    base = '{}://{}:{}'.format(proto, host, port)
-    try:
-        template = env.get_template('mygateway.html')
-        items = []
-        for endpoint in router.routing_table:
-            route = router.routing_table[endpoint]
-            if route.is_ui:
-                items.append({
-                    'ms': 'Unknown microservice',
-                    'url': '{}{}'.format(base, route.uri.decode()),
-                    'uri': route.uri.decode(),
-                    'host': '{}:{}'.format(route.host, route.port),
-                    'last': route.last_seen})
-
-        rendered = template.render({'routes': items})
-        return make_response(rendered, 200)
-    except Exception as e:
-        print("ERROR>", e)
-        return "FAIL", 404
-
+    template = env.get_template('mygateway.html')
+    return make_response(template.render(), 200)
 
 def ping(host, port):
     code, msg = router.ping(host, port)

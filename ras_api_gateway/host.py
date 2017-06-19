@@ -60,8 +60,9 @@ class Router(object):
     def ping(self, host, port):
         key = '{}:{}'.format(host, port)
         if key in self._hosts:
-            self._hosts[key].ping()
-            return 200, 'OK'
+            if self._hosts[key].alive():
+                self._hosts[key].ping()
+                return 200, 'OK'
         return 204, 'not registered'
 
     def register(self, details):
@@ -142,6 +143,7 @@ class Router(object):
                 to_delete = []
                 for key, val in self._endpoints.items():
                     if route.host == val.host and route.port == val.port:
+                        route.kill()
                         to_delete.append(key)
                         print("Deleting endpoint: ", val.uri)
 
@@ -164,6 +166,13 @@ class Route(object):
         self._port = int(details['port'])
         self._uri = details['uri']
         self._ui = self._uri.rstrip('/').split('/')[-1] == 'ui'
+        self._alive = True
+
+    def kill(self):
+        self._alive = False
+
+    def alive(self):
+        return self._alive
 
     @property
     def path(self):
@@ -203,6 +212,7 @@ class Route(object):
 
     def ping(self):
         self._lastseen = datetime.now()
+        self._alive = True
 
     @property
     def last_seen(self):

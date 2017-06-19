@@ -1,7 +1,6 @@
 basePath: /api/1.0.0
 consumes: [application/json]
 definitions: {}
-host: localhost:8079
 info: {title: RAS API Gateway, version: 1.0.0}
 paths:
   /benchmark:

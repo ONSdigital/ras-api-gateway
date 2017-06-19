@@ -28,20 +28,6 @@ class Router(object):
                 'port': ons_env.get('flask_port'),
                 'uri': '/api/1.0.0/{}'.format(endpoint)
             })
-
-
-        #self.register({
-        #    'protocol': 'http',
-        #    'host': 'localhost',
-        #    'port': ons_env.port,
-        #    'uri': '/api/1.0.0/register'
-        #})
-        #self.register({
-        #    'protocol': 'http',
-        #    'host': 'localhost',
-        #    'port': ons_env.port,
-        #    'uri': '/api/1.0.0/ping'
-        #})
         self._hosts = {}
 
     def route(self, uri):
@@ -136,17 +122,16 @@ class Router(object):
         return items
 
     def expire(self):
-        print("<expire>")
+        self.info('running expire')
         for route in self._hosts.values():
             if route.status != 'UP':
-                print("DOWN: ", route)
                 to_delete = []
                 for key, val in self._endpoints.items():
                     if route.host == val.host and route.port == val.port:
                         route.kill()
                         to_delete.append(key)
-                        print("Deleting endpoint: ", val.uri)
 
+                self.log('deleting "{}" endpoints for "{}"'.format(len(to_delete), route.host))
                 for key in to_delete:
                     del self._endpoints[key]
 

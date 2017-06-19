@@ -11,6 +11,8 @@ from twisted.internet.task import LoopingCall
 from twisted.web import client
 from ras_api_gateway.factory_proxy import ProxyFactory
 from ras_api_gateway.host import router
+from sys import stdout
+import logging
 
 if __name__ == '__main__':
 
@@ -22,8 +24,5 @@ if __name__ == '__main__':
         LoopingCall(router.expire).start(8, now=False)
 
     ons_env.activate(callback)
-
-    #logging.getLogger('twisted').setLevel(logging.DEBUG)
-    #log.startLogging(stdout)
 
 

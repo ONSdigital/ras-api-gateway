@@ -40,7 +40,6 @@ class Router(object):
                 return self._endpoints[test + '/']
             parts.pop()
 
-        print("NO MATCH")
         return None
 
     def ping(self, host, port):
@@ -74,7 +73,7 @@ class Router(object):
         key = '{host}:{port}'.format(**details)
         route = Route(details, key)
         self._endpoints[route.path] = route
-        if key not in self._hosts and route.is_ui:
+        if route.is_ui:
             self._hosts[key] = route
 
         self.info('registered "{uri}"'.format(**details))
@@ -94,11 +93,7 @@ class Router(object):
     @property
     def host_list(self):
         items = []
-        proto = ons_env.get('protocol')
-        host = ons_env.get('api_gateway')
-        port = 443 if proto == 'https' else 8080
         for route in self._hosts.values():
-            #base = '{}://{}:{}'.format(proto, host, port)
             base = '{}://{}:{}'.format(
                 ons_env.get('api_protocol'),
                 ons_env.get('api_host'),
@@ -131,7 +126,7 @@ class Router(object):
                         route.kill()
                         to_delete.append(key)
 
-                self.log('deleting "{}" endpoints for "{}"'.format(len(to_delete), route.host))
+                self.info('deleting "{}" endpoints for "{}"'.format(len(to_delete), route.host))
                 for key in to_delete:
                     del self._endpoints[key]
 

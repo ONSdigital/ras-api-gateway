@@ -19,3 +19,7 @@ class ProxyClientFactory(proxy.ProxyClientFactory, ProxyTools):
     def clientConnectionLost(self, connector, reason):
         if reason.type != ConnectionDone:
             self.syslog(WARN, '* warning - connection lost "{}"'.format(reason.value))
+
+
+    def logPrefix(self):
+        return "[** proxyclientfactory**]"

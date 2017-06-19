@@ -40,22 +40,7 @@ def unregister(host):
 def status(*args, **kwargs):
     """Test endpoint"""
     try:
-        proto = ons_env.get('protocol')
-        host = ons_env.get('api_gateway')
-        port = 443 if proto == 'https' else 8080
-        base = '{}://{}:{}'.format(proto, host, port)
-        #template = env.get_template('mygateway.html')
         items = router.host_list
-        #for endpoint in router.routing_table:
-        #    route = router.routing_table[endpoint]
-        #    if route.is_ui:
-        #        items.append([
-        #            'Unknown microservice',
-        #            '<a href="{}{}">{}</a>'.format(base, route.uri.decode(), route.uri.decode()),
-        #            '{}:{}'.format(route.host, route.port),
-        #            route.last_seen,
-        #            route.status
-        #        ])
         result = {
             'draw': 1,
             'recordsTotal': len(items),
@@ -67,11 +52,26 @@ def status(*args, **kwargs):
     except Exception as e:
         print(e)
 
+def get_routes():
+    """
+    Recover a full routing table
+    """
+    return make_response(jsonify(router.route_list), 200)
 
 def mygateway():
     """Display a custom my-gateway screen"""
     template = env.get_template('mygateway.html')
-    return make_response(template.render(), 200)
+    if ons_env.cf.detected:
+        protocol = 'https'
+        gateway = 'api-demo.apps.mvp.onsclofo.uk'
+        port = 443
+    else:
+        protocol = 'http'
+        gateway = 'localhost'
+        port = 8080
+
+    settings = {'api_gateway': gateway, 'api_port': port, 'api_protocol': protocol}
+    return make_response(template.render(settings), 200)
 
 def ping(host, port):
     code, msg = router.ping(host, port)

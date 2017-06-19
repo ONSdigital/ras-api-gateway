@@ -36,6 +36,16 @@ class ProxyRequest(proxy.ProxyRequest, ProxyTools):
             data = self.content.read()
             route = router.route(self.uri.decode())
             if route:
+
+                self.syslog('SSL={} Method={} uri={} proto={} host={} port={}'.format(
+                    "TRUE" if route.ssl else "FALSE",
+                    self.method,
+                    self.uri,
+                    self.clientproto,
+                    route.host,
+                    route.port))
+
+
                 headers[b'host'] = route.host.encode()
                 if not ons_env.is_secure:
                     headers[b'authorization'] = self.jwt

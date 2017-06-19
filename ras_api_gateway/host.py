@@ -20,19 +20,28 @@ class Router(object):
         ons_env.logger.info('[router] {}'.format(text))
 
     def activate(self):
-        self.info('Router is running')
-        self.register({
-            'protocol': 'http',
-            'host': 'localhost',
-            'port': ons_env.port,
-            'uri': '/api/1.0.0/register'
-        })
-        self.register({
-            'protocol': 'http',
-            'host': 'localhost',
-            'port': ons_env.port,
-            'uri': '/api/1.0.0/ping'
-        })
+        self.info('Router is running on port "{}"'.format(ons_env.port))
+        for endpoint in ['register', 'ping']:
+            self.register({
+                'protocol': ons_env.get('flask_protocol'),
+                'host': ons_env.get('flask_host'),
+                'port': ons_env.get('flask_port'),
+                'uri': '/api/1.0.0/{}'.format(endpoint)
+            })
+
+
+        #self.register({
+        #    'protocol': 'http',
+        #    'host': 'localhost',
+        #    'port': ons_env.port,
+        #    'uri': '/api/1.0.0/register'
+        #})
+        #self.register({
+        #    'protocol': 'http',
+        #    'host': 'localhost',
+        #    'port': ons_env.port,
+        #    'uri': '/api/1.0.0/ping'
+        #})
         self._hosts = {}
 
     def route(self, uri):
@@ -102,7 +111,12 @@ class Router(object):
         host = ons_env.get('api_gateway')
         port = 443 if proto == 'https' else 8080
         for route in self._hosts.values():
-            base = '{}://{}:{}'.format(proto, host, port)
+            #base = '{}://{}:{}'.format(proto, host, port)
+            base = '{}://{}:{}'.format(
+                ons_env.get('api_protocol'),
+                ons_env.get('api_host'),
+                ons_env.get('api_port')
+            )
             items.append([
                 'Unknown microservice',
                 '<a href="{}{}">{}</a>'.format(base, route.uri.decode(), route.uri.decode()),
@@ -110,6 +124,14 @@ class Router(object):
                 route.last_seen,
                 route.status_label
             ])
+        return items
+
+    @property
+    def route_list(self):
+        items = []
+        for route in self._endpoints.values():
+            url = '{}://{}:{}{}'.format(route.proto, route.host, route.port, route.uri.decode())
+            items.append(url)
         return items
 
     def expire(self):

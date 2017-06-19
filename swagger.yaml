@@ -1,6 +1,7 @@
 basePath: /api/1.0.0
 consumes: [application/json]
 definitions: {}
+host: localhost:8079
 info: {title: RAS API Gateway, version: 1.0.0}
 paths:
   /benchmark:
@@ -35,6 +36,13 @@ paths:
       - {in: formData, name: details, required: true, type: string}
       responses:
         200: {description: endpoint registered}
+        500: {description: server error}
+      x-swagger-router-controller: ras_api_gateway.proxy_controller
+  /routes:
+    get:
+      operationId: get_routes
+      responses:
+        200: {description: status supplied}
         500: {description: server error}
       x-swagger-router-controller: ras_api_gateway.proxy_controller
   /status:

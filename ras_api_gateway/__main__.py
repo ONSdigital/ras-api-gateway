@@ -18,8 +18,8 @@ if __name__ == '__main__':
         client._HTTP11ClientFactory.noisy = False
         reactor.suggestThreadPoolSize(200)
         reactor.listenTCP(8080, ProxyFactory())
-        reactor.callLater(0, router.activate)
-        LoopingCall(router.expire).start(8)
+        reactor.callLater(1, router.activate)
+        LoopingCall(router.expire).start(8, now=False)
 
     ons_env.activate(callback)
 

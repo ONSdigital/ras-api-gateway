@@ -263,7 +263,7 @@
     <script>
     $(document).ready(function() {
         var table = $('#dt-ms-dev').DataTable( {
-            ajax: 'http://localhost:8080/api/1.0.0/status',
+            ajax: '{{api_protocol}}://{{api_gateway}}:{{api_port}}/api/1.0.0/status',
             paging: false,
             ordering: false,
             info: false,

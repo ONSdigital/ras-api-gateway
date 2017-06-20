@@ -19,15 +19,6 @@ class ProxyRequest(proxy.ProxyRequest, ProxyTools):
     protocols = dict(http=ProxyClientFactory, https=ProxyClientFactory)
     noisy = False
 
-    def __init__(self, *args, **kwargs):
-
-        super().__init__(*args, **kwargs)
-        jwt_token = {
-            'expires_at': (datetime.now() + timedelta(seconds=6000)).timestamp(),
-            'scope': ['ci:read', 'ci:write']
-        }
-        self.jwt = ons_env.jwt.encode(jwt_token).encode()
-
     def process(self):
         """ the is the request processor / main decision maker """
         try:
@@ -36,20 +27,13 @@ class ProxyRequest(proxy.ProxyRequest, ProxyTools):
             data = self.content.read()
             route = router.route(self.uri.decode())
             if route:
-
-                #self.syslog('SSL={} Method={} uri={} proto={} host={} port={}'.format(
-                #    "TRUE" if route.ssl else "FALSE",
-                #    self.method,
-                #    self.uri,
-                #    self.clientproto,
-                #    route.host,
-                #    route.port))
-
-
                 headers[b'host'] = route.host.encode()
                 if not ons_env.is_secure:
-                    headers[b'authorization'] = self.jwt
-
+                    jwt_token = {
+                        'expires_at': (datetime.now() + timedelta(seconds=60)).timestamp(),
+                        'scope': ['ci:read', 'ci:write']
+                    }
+                    headers[b'authorization'] = ons_env.jwt.encode(jwt_token).encode()
                 class_ = self.protocols[route.proto]
                 client_factory = class_(self.method, self.uri, self.clientproto, headers, data, self)
                 if route.ssl:

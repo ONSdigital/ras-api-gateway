@@ -43,9 +43,12 @@ class Router(object):
         return None
 
     def ping(self, host, port):
-        key = '{}:{}'.format(host, port)
+        if port == "None":
+            key = host
+        else:
+            key = '{}:{}'.format(host, port)
         if key in self._hosts:
-            if self._hosts[key].alive():
+            if self._hosts[key].alive:
                 self._hosts[key].ping()
                 return 200, 'OK'
         return 204, 'not registered'
@@ -70,13 +73,17 @@ class Router(object):
         :param details: Endpoint details
         :return: Boolean
         """
-        key = '{host}:{port}'.format(**details)
+        if 'key' in details:
+            key = details['key']
+        else:
+            key = '{host}:{port}'.format(**details)
+
         route = Route(details, key)
         self._endpoints[route.path] = route
         if route.is_ui:
             self._hosts[key] = route
 
-        self.info('registered "{uri}"'.format(**details))
+        self.info('registered "{}" "{uri}"'.format(key, **details))
         return True
 
     def register_json(self, details):
@@ -117,18 +124,20 @@ class Router(object):
         return items
 
     def expire(self):
-        self.info('running expire')
-        for route in self._hosts.values():
+        for key, route in self._hosts.items():
             if route.status != 'UP':
                 to_delete = []
-                for key, val in self._endpoints.items():
-                    if route.host == val.host and route.port == val.port:
-                        route.kill()
-                        to_delete.append(key)
 
-                self.info('deleting "{}" endpoints for "{}"'.format(len(to_delete), route.host))
-                for key in to_delete:
-                    del self._endpoints[key]
+                for path, val in self._endpoints.items():
+                    if key == val.key:
+                        route.kill()
+                        to_delete.append(path)
+
+                self.info('[expire task] deleting "{}" endpoints for "{}"'.format(len(to_delete), key))
+                for item in to_delete:
+                    del self._endpoints[item]
+
+                self._hosts[key].kill()
 
 
 class Route(object):
@@ -145,14 +154,20 @@ class Route(object):
         self._host = details['host']
         self._port = int(details['port'])
         self._uri = details['uri']
-        self._ui = self._uri.rstrip('/').split('/')[-1] == 'ui'
+        self._key = details.get('key', None)
+        self._ui = self._uri.rstrip('/').split('/')[-1] == 'ui' or details.get('ui', False)
         self._alive = True
 
     def kill(self):
         self._alive = False
 
+    @property
     def alive(self):
         return self._alive
+
+    @property
+    def key(self):
+        return self._key
 
     @property
     def path(self):

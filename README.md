@@ -27,3 +27,4 @@ The current CF deployment is available here; [Development API Gateway](https://a
 * Benchmark
 * Implement a keep-alive / polling registration scheme (done)
 * Drive router setup from swagger.yaml
+..

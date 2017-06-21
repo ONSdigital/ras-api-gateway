@@ -16,29 +16,28 @@ from .aggregation import ONSAggregation
 #   Disable SSL tail certificate verification
 #
 v.platformTrust = lambda : None
-
+#
+#   Set up a Jinja2 environment to serve up the "mygateways" page
+#
 env = Environment(loader=FileSystemLoader('templates'))
+#
+#   Start an instance of the aggregation class. (all aggregation calls / logic
+#   go here)
+#
 aggregator = ONSAggregation()
-
-
-def get_secret(*args, **kwargs):
-    """Test endpoint"""
-    return make_response(jsonify("This is a secret"), 200)
+#
+#   These are our native endpoints
+#
 
 
 def register(details):
-    """Test endpoint"""
+    """Register a new endpoint"""
     code, msg = router.register_json(details)
     return make_response(jsonify(msg), code)
 
 
-def unregister(host):
-    """Test endpoint"""
-    return make_response(jsonify("unregister"), 200)
-
-
 def status(*args, **kwargs):
-    """Test endpoint"""
+    """Get the router status - used by MyGateways every 5s"""
     try:
         items = router.host_list
         result = {
@@ -47,16 +46,15 @@ def status(*args, **kwargs):
             'recordsFiltered': len(items),
             'data': items
         }
-        print(result)
         return make_response(jsonify(result), 200)
     except Exception as e:
         print(e)
 
+
 def get_routes():
-    """
-    Recover a full routing table
-    """
+    """Recover a full routing table"""
     return make_response(jsonify(router.route_list), 200)
+
 
 def mygateway():
     """Display a custom my-gateway screen"""
@@ -73,15 +71,12 @@ def mygateway():
     settings = {'api_gateway': gateway, 'api_port': port, 'api_protocol': protocol}
     return make_response(template.render(settings), 200)
 
+
 def ping(host, port):
+    """Handle an incoming ping from a Micro-service"""
     code, msg = router.ping(host, port)
     return make_response(msg, code)
 
-from twisted.python import log
-from sys import stdout
-log.startLogging(stdout)
-
-in_flight = 0
 
 def survey_todo(id=None, status_filter=None):
     """
@@ -91,21 +86,6 @@ def survey_todo(id=None, status_filter=None):
     :param status_filter: The statuses we're interested in
     :return: A data object suitable for producing "mySurveys"
     """
-    global in_flight
-
-    in_flight += 1
-    log.msg("++ In-flight: ", in_flight)
     response = aggregator.survey_todo(id, loads(status_filter))
-    in_flight -= 1
-    log.msg("-- In-flight: ", in_flight)
     return response
 
-def benchmark():
-    global in_flight
-
-    in_flight += 1
-    log.msg("++ In-flight: ", in_flight)
-    response = make_response(jsonify("unregister"), 200)
-    in_flight -= 1
-    log.msg("-- In-flight: ", in_flight)
-    return response

@@ -9,6 +9,11 @@ from datetime import datetime
 from json import loads, decoder
 from ons_ras_common import ons_env
 
+#
+#   This module contains the "Router" and "Route" classes. These have been the
+#   subject of much iteration and could do with a little more rationalisation
+#   and refactoring.
+#
 
 class Router(object):
 
@@ -108,7 +113,7 @@ class Router(object):
             )
             items.append([
                 'Unknown microservice',
-                '<a href="{}{}">{}</a>'.format(base, route.uri.decode(), route.uri.decode()),
+                '<a target="_blank" href="{}{}">{}</a>'.format(base, route.uri.decode(), route.uri.decode()),
                 '{}:{}'.format(route.host, route.port),
                 route.last_seen,
                 route.status_label

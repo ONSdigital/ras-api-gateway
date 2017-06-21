@@ -10,7 +10,7 @@ from json import loads
 from twisted.web import client
 from twisted.internet.error import ConnectionRefusedError, NoRouteError, UserError
 from twisted.internet.defer import DeferredList
-from ras_api_gateway.proxy_router import router
+from ras_api_gateway.host import router
 import treq
 import arrow
 from crochet import wait_for, no_setup

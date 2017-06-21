@@ -11,9 +11,13 @@ from twisted.internet.task import LoopingCall
 from twisted.web import client
 from ras_api_gateway.factory_proxy import ProxyFactory
 from ras_api_gateway.host import router
-from sys import stdout
-import logging
 
+#
+#   This is the standard / minimal startup routine with a callback designed
+#   to startup an additional Twisted service on port 8080. (the proxy) We're
+#   going to call router.activate once after a 1s delay, then router.expire
+#   every 8s.
+#
 if __name__ == '__main__':
 
     def callback(app):

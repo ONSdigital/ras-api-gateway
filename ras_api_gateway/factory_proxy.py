@@ -11,6 +11,10 @@ from datetime import datetime
 from .factory_request import ProxyRequest
 from .proxy_tools import ProxyTools
 
+#
+#   Over-ride the default proxy logger so we just record non-200 responses
+#
+
 class Proxy(proxy.Proxy):
     """ set the request factory """
     requestFactory = ProxyRequest

@@ -4,13 +4,6 @@ definitions: {}
 host: localhost:8080
 info: {title: RAS API Gateway, version: 1.0.0}
 paths:
-  /benchmark:
-    get:
-      operationId: benchmark
-      responses:
-        200: {description: status supplied}
-        500: {description: server error}
-      x-swagger-router-controller: ras_api_gateway.proxy_controller
   /mygateway:
     get:
       operationId: mygateway
@@ -64,15 +57,6 @@ paths:
         required: true, type: string}
       responses:
         200: {description: status supplied}
-        500: {description: server error}
-      x-swagger-router-controller: ras_api_gateway.proxy_controller
-  /unregister/{host}:
-    post:
-      operationId: unregister
-      parameters:
-      - {in: path, name: host, required: true, type: string}
-      responses:
-        200: {description: endpoint unregistered}
         500: {description: server error}
       x-swagger-router-controller: ras_api_gateway.proxy_controller
 produces: [application/json]

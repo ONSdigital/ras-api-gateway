@@ -13,6 +13,11 @@ from .proxy_tools import ProxyTools
 from datetime import datetime, timedelta
 from ras_api_gateway.host import router
 
+#
+#   This is the main proxy routine. It relies on the "route" class to determins
+#   where to send traffic, and if security is turned off it will inject a JWT
+#   token in the header of the ongoing request.
+#
 
 class ProxyRequest(proxy.ProxyRequest, ProxyTools):
     """ this is where the transaction is initially received """

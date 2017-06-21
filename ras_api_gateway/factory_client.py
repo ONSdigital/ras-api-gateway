@@ -11,16 +11,18 @@ from logging import DEBUG, INFO, WARN
 from twisted.internet.error import ConnectionDone
 from ons_ras_common import ons_env
 
+#
+#   Strictly speaking these routines are not required, however the first will
+#   add CORS support for Titchfield services (which currently don't support
+#   CORS) and the second spots unintended network errors.
+#
+
 
 class MyProxyClient(proxy.ProxyClient):
 
     def handleResponseEnd(self):
         self.headers['Access-Control-Allow-Origin'] = '*'
         super().handleResponseEnd()
-        #if not self._finished:
-        #    self._finished = True
-        #    self.father.finish()
-        #    self.transport.loseConnection()
 
 
 class ProxyClientFactory(proxy.ProxyClientFactory, ProxyTools):
@@ -31,6 +33,3 @@ class ProxyClientFactory(proxy.ProxyClientFactory, ProxyTools):
     def clientConnectionLost(self, connector, reason):
         if reason.type != ConnectionDone:
             self.syslog(WARN, '* warning - connection lost "{}"'.format(reason.value))
-
-    def logPrefix(self):
-        return "[** proxyclientfactory**]"

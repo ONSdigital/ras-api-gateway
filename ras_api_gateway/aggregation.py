@@ -10,7 +10,7 @@ from json import loads
 from twisted.web import client
 from twisted.internet.error import ConnectionRefusedError, NoRouteError, UserError
 from twisted.internet.defer import DeferredList
-from ras_api_gateway.proxy_router import router
+from ras_api_gateway.host import router
 import treq
 import arrow
 from crochet import wait_for, no_setup
@@ -211,6 +211,8 @@ class ONSAggregation(object):
         for item in results.values():
             item_status = self.calculate_case_status(item['case']['caseEvents']).lower()
             if item_status in status_filter:
+                if 'collectionInstrumentId' in item['business']:
+                    item['case']['collectionInstrumentId'] = item['business']['collectionInstrumentId']
                 rows.append({
                     'businessData': item['business'],
                     'case': item['case'],

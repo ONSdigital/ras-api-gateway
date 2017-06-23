@@ -11,7 +11,9 @@ from twisted.internet.task import LoopingCall
 from twisted.web import client
 from ras_api_gateway.factory_proxy import ProxyFactory
 from ras_api_gateway.host import router
-
+from twisted.python import log
+from sys import stdout
+log.startLogging(stdout)
 #
 #   This is the standard / minimal startup routine with a callback designed
 #   to startup an additional Twisted service on port 8080. (the proxy) We're

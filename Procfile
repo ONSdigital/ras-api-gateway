@@ -1,1 +1,1 @@
-web: ONS_ENV=development python -m ras_api_gateway
+web: ONS_ENV=gareth python3 -m ras_api_gateway

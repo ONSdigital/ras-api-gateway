@@ -59,16 +59,19 @@ def get_routes():
 def mygateway():
     """Display a custom my-gateway screen"""
     template = env.get_template('mygateway.html')
-    if ons_env.cf.detected:
-        protocol = 'https'
-        gateway = 'api-demo.apps.mvp.onsclofo.uk'
-        port = 443
-    else:
-        protocol = 'http'
-        gateway = 'localhost'
-        port = 8080
+    host = ons_env.get('api_host','(no gateway)')
+    protocol = ons_env.get('api_protocol','(no protocol)')
+    port = ons_env.get('api_port','(no port)')	
+    #if ons_env.cf.detected:
+    #    protocol = 'https'
+    #    gateway = 'api-demo.apps.mvp.onsclofo.uk'
+    #    port = 443
+    #else:
+    #    protocol = 'http'
+    #    gateway = 'localhost'
+    #    port = 8080
 
-    settings = {'api_gateway': gateway, 'api_port': port, 'api_protocol': protocol}
+    settings = {'api_host': host, 'api_port': port, 'api_protocol': protocol}
     return make_response(template.render(settings), 200)
 
 

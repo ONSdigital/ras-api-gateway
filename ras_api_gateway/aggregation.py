@@ -7,6 +7,7 @@
 ##############################################################################
 from flask import jsonify, make_response
 from json import loads
+from ons_ras_common import ons_env
 from twisted.web import client
 from twisted.internet.error import ConnectionRefusedError, NoRouteError, UserError
 from twisted.internet.defer import DeferredList
@@ -61,9 +62,9 @@ class ONSAggregation(object):
     inputDateFormat = 'YYYY-MM-DDThh:mm:ss'
     outputDateFormat = 'D MMM YYYY'
     CASES_GET = '/collection-exercise-api/1.0.0/cases/partyid'
-    RESPONDENTS_GET = '/respondents/id/'
+    RESPONDENTS_GET = '/party-api/v1/respondents/id/'
     SURVEY_GET = '/collection-exercise-api/1.0.0/surveys'
-    BUSINESS_GET = '/businesses/id/'
+    BUSINESS_GET = '/party-api/v1/businesses/id/'
     EXERCISE_GET = '/collection-exercise-api/1.0.0/collection-exercise'
 
     @staticmethod
@@ -195,7 +196,8 @@ class ONSAggregation(object):
         #
         for deferred in deferreds:
             if not deferred[0]:
-                return deferred[1] if deferred[1] == str else deferred[1].getErrorMessage(), 500
+                ons_env.logger.info("FAILED: {}".format(deferred[1]))
+                return make_response(deferred[1] if deferred[1] == str else deferred[1].getErrorMessage(), 500)
         #
         #   This is the 'gather' stage, it might seem a little counter-intuitive looking a the above test,
         #   but the returning deferreds contain resulting status information and meta-data. As requests have

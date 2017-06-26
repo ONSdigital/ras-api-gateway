@@ -61,9 +61,9 @@ class ONSAggregation(object):
     inputDateFormat = 'YYYY-MM-DDThh:mm:ss'
     outputDateFormat = 'D MMM YYYY'
     CASES_GET = '/collection-exercise-api/1.0.0/cases/partyid'
-    RESPONDENTS_GET = '/collection-exercise-api/1.0.0/respondents'
+    RESPONDENTS_GET = '/respondents/id/'
     SURVEY_GET = '/collection-exercise-api/1.0.0/surveys'
-    BUSINESS_GET = '/collection-exercise-api/1.0.0/businesses/id'
+    BUSINESS_GET = '/businesses/id/'
     EXERCISE_GET = '/collection-exercise-api/1.0.0/collection-exercise'
 
     @staticmethod

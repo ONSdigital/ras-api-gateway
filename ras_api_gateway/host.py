@@ -123,8 +123,8 @@ class Router(object):
     @property
     def route_list(self):
         items = []
-        for route in self._endpoints.values():
-            url = '{}://{}:{}{}'.format(route.proto, route.host, route.port, route.uri.decode())
+        for key, route in self._endpoints.items():
+            url = '{} ==>> {}://{}:{}{}'.format(key, route.proto, route.host, route.port, route.uri.decode())
             items.append(url)
         return items
 

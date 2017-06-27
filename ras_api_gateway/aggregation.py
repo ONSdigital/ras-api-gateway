@@ -6,12 +6,14 @@
 #                                                                            #
 ##############################################################################
 from flask import jsonify, make_response
-from json import loads
+from json import loads, dumps
 from ons_ras_common import ons_env
 from twisted.web import client
 from twisted.internet.error import ConnectionRefusedError, NoRouteError, UserError
 from twisted.internet.defer import DeferredList
 from ras_api_gateway.host import router
+from urllib.parse import urlencode
+from urllib.parse import quote
 import treq
 import arrow
 from crochet import wait_for, no_setup
@@ -43,14 +45,24 @@ def hit_route(url, params):
         :param response: The incoming response object
         :return: The response object (we're just a link in the pipeline)
         """
+
         if response.code != 200:
+            ons_env.logger.info('ERROR ON "{}"'.format(full_url))
             raise UserError
+
+        ons_env.logger.info("-- Enter -- {} {}".format(url, params))
         return response
 
     route = router.route(url)
     if not route:
+        ons_env.logger.info('NO ROUTE FOR ({} <=> {})'.format(url, params))
         raise NoRouteError
-    return treq.get('{}/{}'.format(route.txt, params)).addCallback(status_check).addCallback(treq.content)
+
+    if params[0] != '?':
+        params = '/'+params
+    full_url = '{}{}'.format(route.txt, params)
+    ons_env.logger.info('==>{}'.format(full_url))
+    return treq.get(full_url).addCallback(status_check).addCallback(treq.content)
 
 
 class ONSAggregation(object):
@@ -64,8 +76,9 @@ class ONSAggregation(object):
     CASES_GET = '/collection-exercise-api/1.0.0/cases/partyid'
     RESPONDENTS_GET = '/party-api/v1/respondents/id/'
     SURVEY_GET = '/collection-exercise-api/1.0.0/surveys'
-    BUSINESS_GET = '/collection-exercise-api/1.0.0/business/id'
+    BUSINESS_GET = '/party-api/v1/businesses/id/'
     EXERCISE_GET = '/collection-exercise-api/1.0.0/collection-exercise'
+    INSTRUMENT_GET = '/collection-instrument-api/1.0.2/collectioninstrument'
 
     @staticmethod
     def calculate_case_status(case_events):
@@ -151,6 +164,7 @@ class ONSAggregation(object):
             :param key: The particular response we're expecting, i.e. business, survey, etc ...
             :return: A tuple emulating a successfully completed deferred() request
             """
+            ons_env.logger.info("CASE={} KEY={} BLOB={}".format(case_id, key, loads(blob.decode())))
             results[case_id][key] = loads(blob.decode())
             return True, None
         #
@@ -176,11 +190,19 @@ class ONSAggregation(object):
                         ex[key] = ex[key].replace('Z', '')
                         ex[key + 'Formatted'] = arrow.get(ex[key], self.inputDateFormat).format(self.outputDateFormat)
                     return DeferredList([hit_route(self.SURVEY_GET, ex['surveyId']).addCallback(attach, case_identifier, 'survey')])
+
+                def attach_business(ex, case_identifier):
+                    ex = results[case_identifier]['business'] = loads(ex.decode())
+                    ru_ref = dumps({"RU_REF": "{}".format(ex['businessRef'])})
+                    params = "?searchString={}".format(quote(ru_ref))
+                    return DeferredList([hit_route(self.INSTRUMENT_GET, params).addCallback(attach, case_identifier, 'ci')])
+
                 case_id = case['id']
                 business_id = case['caseGroup']['partyId']
                 exercise_id = case['caseGroup']['collectionExerciseId']
                 results[case_id] = {'case': case}
-                business = hit_route(self.BUSINESS_GET, business_id).addCallback(attach, case_id, 'business')
+                #business = hit_route(self.BUSINESS_GET, business_id).addCallback(attach, case_id, 'business')
+                business = hit_route(self.BUSINESS_GET, business_id).addCallback(attach_business, case_id)
                 exercise = hit_route(self.EXERCISE_GET, exercise_id).addCallback(attach_exercise, case_id)
                 dlist += [business, exercise]
             return DeferredList(dlist)
@@ -213,8 +235,9 @@ class ONSAggregation(object):
         for item in results.values():
             item_status = self.calculate_case_status(item['case']['caseEvents']).lower()
             if item_status in status_filter:
-                if 'collectionInstrumentId' in item['business']:
-                    item['case']['collectionInstrumentId'] = item['business']['collectionInstrumentId']
+                #if 'collectionInstrumentId' in item['business']:
+                item['case']['collectionInstrumentId'] = item['ci'][0]['id']
+
                 rows.append({
                     'businessData': item['business'],
                     'case': item['case'],

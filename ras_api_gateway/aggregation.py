@@ -64,7 +64,7 @@ class ONSAggregation(object):
     CASES_GET = '/collection-exercise-api/1.0.0/cases/partyid'
     RESPONDENTS_GET = '/party-api/v1/respondents/id/'
     SURVEY_GET = '/collection-exercise-api/1.0.0/surveys'
-    BUSINESS_GET = '/party-api/v1/businesses/id/'
+    BUSINESS_GET = '/collection-exercise-api/1.0.0/business/id'
     EXERCISE_GET = '/collection-exercise-api/1.0.0/collection-exercise'
 
     @staticmethod

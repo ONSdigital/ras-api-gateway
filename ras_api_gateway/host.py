@@ -112,18 +112,20 @@ class Router(object):
             #    ons_env.get('api_host'),
             #    ons_env.get('api_port')
             #)
-            port = 80 if route.port == 443 else route.port
+            port = 80 if int(route.port) == 443 else route.port
 
+            print("1. ROUTE.HOST=", route.host)
             if route.host == 'localhost':
                 base = 'http://{}:{}'.format(
-                    ons_env.flask_host,
-                    ons_env.flask_port
+                    ons_env.api_host,
+                    ons_env.api_port
                 )
             else:
                 base = 'http://{}:{}'.format(
                     route.host,
                     port
                 )
+            print("2. ROUTE.HOST=", route.host, base)
 
             items.append([
                 '<a target="_blank" href="{}{}">{}</a>'.format(base, route.uri.decode(), route.name),
@@ -131,6 +133,7 @@ class Router(object):
                 route.last_seen,
                 route.status_label
             ])
+        print(items)
         return items
 
     @property

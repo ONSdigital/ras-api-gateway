@@ -112,10 +112,10 @@ class Router(object):
             #    ons_env.get('api_host'),
             #    ons_env.get('api_port')
             #)
+            port = 80 if route.port == 443 else route.port
             base = 'http://{}:{}'.format(
-                #ons_env.get('api_protocol'),
                 route.host,
-                route.port
+                port
             )
 
             items.append([

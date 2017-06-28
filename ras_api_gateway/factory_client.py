@@ -33,10 +33,10 @@ class MyProxyClient(proxy.ProxyClient):
     def handleEndHeaders(self):
         """Insert a CORS header in the return path"""
         if not self._cors:
-            print("** ADDING CORS")
+            #print("** ADDING CORS")
             self.father.responseHeaders.addRawHeader('Access-Control-Allow-Origin', '*')
-        else:
-            print("** CORS NOT NEEDED")
+        #else:
+        #    print("** CORS NOT NEEDED")
         super().handleEndHeaders()
 
 

@@ -20,9 +20,10 @@ from ons_ras_common import ons_env
 
 class MyProxyClient(proxy.ProxyClient):
 
-    def handleResponseEnd(self):
-        self.headers['Access-Control-Allow-Origin'] = '*'
-        super().handleResponseEnd()
+    def handleEndHeaders(self):
+        """Insert a CORS header in the return path"""
+        self.father.responseHeaders.addRawHeader('Access-Control-Allow-Origin', '*')
+        super().handleEndHeaders()
 
 
 class ProxyClientFactory(proxy.ProxyClientFactory, ProxyTools):

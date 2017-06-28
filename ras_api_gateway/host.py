@@ -112,8 +112,8 @@ class Router(object):
             #    ons_env.get('api_host'),
             #    ons_env.get('api_port')
             #)
-            base = '{}://{}:{}'.format(
-                ons_env.get('api_protocol'),
+            base = 'http://{}:{}'.format(
+                #ons_env.get('api_protocol'),
                 route.host,
                 route.port
             )

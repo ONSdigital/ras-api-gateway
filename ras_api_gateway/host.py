@@ -105,7 +105,8 @@ class Router(object):
     @property
     def host_list(self):
         items = []
-        for route in self._hosts.values():
+        for key in sorted(self._hosts):
+            route = self._hosts[key]
             ons_env.logger.info("Route> {}".format(route))
             #base = '{}://{}:{}'.format(
             #    ons_env.get('api_protocol'),
@@ -116,9 +117,8 @@ class Router(object):
 
             print("1. ROUTE.HOST=", route.host)
             if route.host == 'localhost':
-                base = 'http://{}:{}'.format(
-                    ons_env.api_host,
-                    ons_env.api_port
+                base = 'http://{}'.format(
+                    ons_env.api_host
                 )
             else:
                 base = 'http://{}:{}'.format(

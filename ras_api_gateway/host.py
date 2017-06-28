@@ -106,14 +106,20 @@ class Router(object):
     def host_list(self):
         items = []
         for route in self._hosts.values():
+            ons_env.logger.info("Route> {}".format(route))
+            #base = '{}://{}:{}'.format(
+            #    ons_env.get('api_protocol'),
+            #    ons_env.get('api_host'),
+            #    ons_env.get('api_port')
+            #)
             base = '{}://{}:{}'.format(
                 ons_env.get('api_protocol'),
-                ons_env.get('api_host'),
-                ons_env.get('api_port')
+                route.host,
+                route.port
             )
+
             items.append([
-                'Unknown microservice',
-                '<a target="_blank" href="{}{}">{}</a>'.format(base, route.uri.decode(), route.uri.decode()),
+                '<a target="_blank" href="{}{}">{}</a>'.format(base, route.uri.decode(), route.name),
                 '{}:{}'.format(route.host, route.port),
                 route.last_seen,
                 route.status_label
@@ -159,6 +165,7 @@ class Route(object):
         self._host = details['host']
         self._port = int(details['port'])
         self._uri = details['uri']
+        self._name = details.get('name', 'No Name')
         self._key = details.get('key', None)
         self._ui = self._uri.rstrip('/').split('/')[-1] == 'ui' or details.get('ui', False)
         self._alive = True
@@ -217,6 +224,10 @@ class Route(object):
     @property
     def last_seen(self):
         return self._lastseen.strftime('%c')
+
+    @property
+    def name(self):
+        return self._name
 
     @property
     def status(self):

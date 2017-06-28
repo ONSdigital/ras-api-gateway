@@ -20,10 +20,23 @@ from ons_ras_common import ons_env
 
 class MyProxyClient(proxy.ProxyClient):
 
+    def __init__(self, *args, **kwargs):
+        self._cors = False
+        super().__init__(*args, **kwargs)
+
+    def handleHeader(self, key, value):
+        #print("{} == {}".format(key, value))
+        if key.lower() == b'access-control-allow-origin':
+            self._cors = True
+        super().handleHeader(key, value)
+
     def handleEndHeaders(self):
         """Insert a CORS header in the return path"""
-        if 'Access-Control-Allow-Origin' not in self.headers:
+        if not self._cors:
+            print("** ADDING CORS")
             self.father.responseHeaders.addRawHeader('Access-Control-Allow-Origin', '*')
+        else:
+            print("** CORS NOT NEEDED")
         super().handleEndHeaders()
 
 

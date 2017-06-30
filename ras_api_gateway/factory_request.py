@@ -33,7 +33,7 @@ class ProxyRequest(proxy.ProxyRequest, ProxyTools):
             route = router.route(self.uri.decode())
             if route:
                 headers[b'host'] = route.host.encode()
-                if not ons_env.is_secure:
+                if not ons_env.is_secure and b'authorization' not in headers:
                     jwt_token = {
                         'expires_at': (datetime.now() + timedelta(seconds=60)).timestamp(),
                         'scope': ['ci:read', 'ci:write']

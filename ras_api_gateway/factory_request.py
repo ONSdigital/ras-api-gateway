@@ -47,9 +47,9 @@ class ProxyRequest(proxy.ProxyRequest, ProxyTools):
                     reactor.connectTCP(route.host, route.port, client_factory)
             else:
                 self.syslog('no such API endpoint "{}"'.format(self.uri.decode()))
-                self.setResponseCode(500, b'no such API endpoint')
+                self.setResponseCode(404, b'no such API endpoint')
                 self.finish()
         except Exception as e:
             self.syslog('Error: {}'.format(str(e)))
-            self.setResponseCode(500, b'no such API endpoint')
+            self.setResponseCode(500, b'unknown system error')
             self.finish()

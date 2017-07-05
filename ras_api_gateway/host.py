@@ -120,10 +120,7 @@ class Router(object):
                     route.host, route.port
                 )
             else:
-                base = 'http://{}:{}'.format(
-                    route.host,
-                    port
-                )
+                base = 'https://{}'.format(route.host)
             items.append([
                 '<a target="_blank" href="{}{}">{}</a>'.format(base, route.uri.decode(), route.name),
                 '{}:{}'.format(route.host, route.port),

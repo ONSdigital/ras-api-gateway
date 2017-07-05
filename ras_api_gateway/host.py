@@ -115,6 +115,13 @@ class Router(object):
         for key in sorted(self._hosts):
             route = self._hosts[key]
             port = 80 if int(route.port) == 443 else route.port
+
+
+            #'protocol': ons_env.get('flask_protocol'),
+            #'host': ons_env.get('flask_host'),
+            #'port': ons_env.get('flask_port'),
+            #'uri': '/api/1.0.0/{}'.format(endpoint)
+
             if route.host == 'localhost' and port != 8079:
                 base = 'http://{}:{}'.format(
                     route.host, route.port

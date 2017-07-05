@@ -115,7 +115,7 @@ class Router(object):
         for key in sorted(self._hosts):
             route = self._hosts[key]
             port = 80 if int(route.port) == 443 else route.port
-            if route.host == 'localhost':
+            if route.host == 'localhost' and port != 8079:
                 base = 'http://{}:{}'.format(
                     route.host, route.port
                 )

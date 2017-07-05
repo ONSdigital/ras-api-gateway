@@ -12,12 +12,12 @@ from twisted.web import client
 from twisted.internet.error import ConnectionRefusedError, NoRouteError, UserError
 from twisted.internet.defer import DeferredList
 from ras_api_gateway.host import router
-from urllib.parse import urlencode
+#from urllib.parse import urlencode
 from urllib.parse import quote
 import treq
 import arrow
 from crochet import wait_for, no_setup
-no_setup()
+#no_setup()
 #
 #   We don't really want the default logging 'noise' associated with HTTP client requests
 #
@@ -90,12 +90,12 @@ class ONSAggregation(object):
         """
         status = ''
         for event in case_events:
-            if event['category'] == 'CASE_UPLOADED':
+            if event['category'] == 'COLLECTION_INSTRUMENT_UPLOADED':
                 status = 'Complete'
                 break
         if status == '':
             for event in case_events:
-                if event['category'] == 'CASE_DOWNLOADED':
+                if event['category'] == 'COLLECTION_INSTRUMENT_DOWNLOADED':
                     status = 'In progress'
                     break
         if status == '':

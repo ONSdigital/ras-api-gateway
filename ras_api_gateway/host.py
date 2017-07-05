@@ -20,6 +20,7 @@ class Router(object):
     def __init__(self):
         self._hosts = {}
         self._endpoints = {}
+        self._hits = 0
 
     def info(self, text):
         ons_env.logger.info('[router] {}'.format(text))
@@ -40,9 +41,15 @@ class Router(object):
         while len(parts):
             test = '/'.join(parts)
             if test in self._endpoints:
-                return self._endpoints[test]
+                route = self._endpoints[test]
+                route.hit()
+                self._hits += 1
+                return route
             if test+'/' in self._endpoints:
-                return self._endpoints[test + '/']
+                route = self._endpoints[test + '/']
+                route.hit()
+                self._hits += 1
+                return route
             parts.pop()
 
         return None
@@ -107,33 +114,22 @@ class Router(object):
         items = []
         for key in sorted(self._hosts):
             route = self._hosts[key]
-            ons_env.logger.info("Route> {}".format(route))
-            #base = '{}://{}:{}'.format(
-            #    ons_env.get('api_protocol'),
-            #    ons_env.get('api_host'),
-            #    ons_env.get('api_port')
-            #)
             port = 80 if int(route.port) == 443 else route.port
-
-            print("1. ROUTE.HOST=", route.host)
             if route.host == 'localhost':
-                base = 'http://{}'.format(
-                    ons_env.api_host
+                base = 'http://{}:{}'.format(
+                    route.host, route.port
                 )
             else:
                 base = 'http://{}:{}'.format(
                     route.host,
                     port
                 )
-            print("2. ROUTE.HOST=", route.host, base)
-
             items.append([
                 '<a target="_blank" href="{}{}">{}</a>'.format(base, route.uri.decode(), route.name),
                 '{}:{}'.format(route.host, route.port),
                 route.last_seen,
                 route.status_label
             ])
-        print(items)
         return items
 
     @property
@@ -154,11 +150,12 @@ class Router(object):
                         route.kill()
                         to_delete.append(path)
 
-                self.info('[expire task] deleting "{}" endpoints for "{}"'.format(len(to_delete), key))
-                for item in to_delete:
-                    del self._endpoints[item]
+                if len(to_delete):
+                    self.info('[expire task] deleting "{}" endpoints for "{}"'.format(len(to_delete), key))
+                    for item in to_delete:
+                        del self._endpoints[item]
 
-                self._hosts[key].kill()
+                    self._hosts[key].kill()
 
 
 class Route(object):
@@ -179,6 +176,10 @@ class Route(object):
         self._key = details.get('key', None)
         self._ui = self._uri.rstrip('/').split('/')[-1] == 'ui' or details.get('ui', False)
         self._alive = True
+        self._hits = 0
+
+    def hit(self):
+        self._hits += 1
 
     def kill(self):
         self._alive = False

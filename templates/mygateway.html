@@ -260,9 +260,10 @@
     <script src="build/js/custom.min.js"></script>
 
     <script>
+    var newURL = window.location.protocol + "//" + window.location.host + "/api/1.0.0/status";
     $(document).ready(function() {
         var table = $('#dt-ms-dev').DataTable( {
-            ajax: '{{api_protocol}}://{{api_host}}:{{api_port}}/api/1.0.0/status',
+            ajax: newURL,
             paging: false,
             ordering: false,
             info: false,
@@ -276,3 +277,4 @@
 	
   </body>
 </html>
+<!-- #'{{api_protocol}}://{{api_host}}:{{api_port}}/api/1.0.0/status', -->

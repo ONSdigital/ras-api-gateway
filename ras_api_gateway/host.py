@@ -114,7 +114,16 @@ class Router(object):
         items = []
         for key in sorted(self._hosts):
             route = self._hosts[key]
-            port = 80 if int(route.port) == 443 else route.port
+            #
+            #   For local, we want to point to localhost:8080/path
+            #   For CF we want (public-gw)/path
+            #
+            if route.host == 'localhost':
+                base = 'http://localhost:8080'
+            else:
+                base = 'http://{}'.format(ons_env.api_host)
+
+            #port = 80 if int(route.port) == 443 else route.port
 
 
             #'protocol': ons_env.get('flask_protocol'),
@@ -122,12 +131,12 @@ class Router(object):
             #'port': ons_env.get('flask_port'),
             #'uri': '/api/1.0.0/{}'.format(endpoint)
 
-            if route.host == 'localhost' and port != 8079:
-                base = 'http://{}:{}'.format(
-                    route.host, route.port
-                )
-            else:
-                base = 'https://{}'.format(route.host)
+            #if route.host == 'localhost' and port != 8079:
+            #    base = 'http://{}:{}'.format(
+            #        route.host, route.port,
+            #    )
+            #else:
+            #    base = 'https://{}'.format(route.host)
             items.append([
                 '<a target="_blank" href="{}{}">{}</a>'.format(base, route.uri.decode(), route.name),
                 '{}:{}'.format(route.host, route.port),

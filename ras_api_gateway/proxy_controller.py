@@ -62,16 +62,16 @@ def mygateway():
     host = ons_env.get('api_host','(no gateway)')
     protocol = ons_env.get('api_protocol','(no protocol)')
     port = ons_env.get('api_port','(no port)')	
-    #if ons_env.cf.detected:
-    #    protocol = 'https'
-    #    gateway = 'api-demo.apps.mvp.onsclofo.uk'
-    #    port = 443
-    #else:
-    #    protocol = 'http'
-    #    gateway = 'localhost'
-    #    port = 8080
 
-    settings = {'api_host': host, 'api_port': port, 'api_protocol': protocol}
+    buttons = [
+        {'text': 'Testing (test)', 'icon': 'edit', 'active': '', 'status': 'http://ras-api-gateway-test.apps.devtest.onsclofo.uk'},
+        {'text': 'Demonstration (Demo)', 'icon': 'desktop', 'active': '', 'status': 'http://ras-api-gateway-demo.apps.devtest.onsclofo.uk'},
+        {'text': 'Integration (Int)', 'icon': 'clone', 'active': '', 'status': 'http://ras-api-gateway-int.apps.devtest.onsclofo.uk'},
+    ]
+    if host == 'localhost':
+        buttons = [{'text': 'Local (development)', 'icon': 'home', 'active': 'class="active"', 'status': 'http://localhost:8080'}] + buttons
+
+    settings = {'api_host': host, 'api_port': port, 'api_protocol': protocol, 'buttons': buttons}
     return make_response(template.render(settings), 200)
 
 

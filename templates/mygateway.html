@@ -62,10 +62,14 @@
 
                 <h3>Deployment Targets</h3>
                 <ul class="nav side-menu">
+                  {% for button in buttons %}
+                    <li {{button.active}}><a onclick='switch_env("{{button.text}}", "{{button.status}}")'><i class="fa fa-{{button.icon}}"></i> {{button.text}}</a></li>
+                  {% endfor %}
+                  <!--
                   <li><a><i class="fa fa-home"></i> Development</a></li>
                   <li><a><i class="fa fa-edit"></i> Integration</a></li>
                   <li><a><i class="fa fa-desktop"></i> Demo</a></li>
-                  <li><a><i class="fa fa-clone"></i> Production</a></li>
+                  <li><a><i class="fa fa-clone"></i> Production</a></li>-->
                 </ul>
               </div>
 
@@ -148,7 +152,7 @@
            <div class="col-md-12 col-sm-12 col-xs-12">
               <div class="x_panel">
                 <div class="x_title">
-                  <h2>Development Environment - Micro-service status</small></h2>
+                  <h2>Environment - <i id='env_name'></i></h2>
                   <ul class="nav navbar-right panel_toolbox">
                     <li><a class="collapse-link"><i class="fa fa-chevron-up"></i></a></li>
                     <!--
@@ -169,8 +173,10 @@
                 </div>
                 <div class="x_content">
                   <p class="text-muted font-13 m-b-30">
-                    This table lists Micro-services available in the current environment and their current state. Please note the table
-                    is <b>will</b> be updated dynamically, but for the moment you will need to refresh the page to get a status update.
+                    This table lists details and status of the Micro-services available in a selected Environment. The contents of the table
+                    will be refreshed every 5 seconds, or you can click on one of the environment buttons in the left hand column to choose
+                    another environment or force a status update. You can click on the Micro-Service <b>name</b> to access the swagger UI for
+                    that Micro-Service, if one is available.
                   </p>
                   <table id="dt-ms-dev" class="table table-striped table-bordered bulk_action"
                          style="border-bottom: none; border-collapse: collapse">
@@ -260,14 +266,26 @@
     <script src="build/js/custom.min.js"></script>
 
     <script>
+
+    var table = null;
+    $('#env_name').html("{{buttons[0].text}}");
+
+    function switch_env(name, status) {
+      $('#env_name').html(name);
+      table.ajax.url(status + "/api/1.0.0/status");
+      table.ajax.reload(null, true).columns.adjust().draw();
+    }
+
     var newURL = window.location.protocol + "//" + window.location.host + "/api/1.0.0/status";
     $(document).ready(function() {
-        var table = $('#dt-ms-dev').DataTable( {
+        table = $('#dt-ms-dev').DataTable( {
+            responsive: true,
             ajax: newURL,
             paging: false,
             ordering: false,
             info: false,
-            searching: false
+            searching: false,
+            autoWidth: false,
         } );
         setInterval(function() {
             table.ajax.reload(null, false)

@@ -119,7 +119,7 @@ class Router(object):
             #   For CF we want (public-gw)/path
             #
             #if ons_env.api_host == 'localhost' and int(ons_env.api_port) not in [80, 443]:
-            base = '{}//{}:{}'.format(route.proto, route.host, route.port)
+            base = '{}://{}:{}'.format(route.proto, route.host, route.port)
 
             #else:
             #    base = '//{}'.format(ons_env.api_host)

@@ -118,11 +118,10 @@ class Router(object):
             #   For local, we want to point to localhost:8080/path
             #   For CF we want (public-gw)/path
             #
-            #if ons_env.api_host == 'localhost' and int(ons_env.api_port) not in [80, 443]:
-            base = '{}://{}:{}'.format(route.proto, route.host, route.port)
-
-            #else:
-            #    base = '//{}'.format(ons_env.api_host)
+            if ons_env.api_host == 'localhost' and int(ons_env.api_port) not in [80, 443]:
+                base = 'http://{}:{}'.format(route.host, route.port)
+            else:
+                base = 'http://{}'.format(route.host)
 
             items.append([
                 '<a target="_blank" href="{}{}">{}</a>'.format(base, route.uri.decode(), route.name),

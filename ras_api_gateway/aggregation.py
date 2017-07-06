@@ -12,12 +12,10 @@ from twisted.web import client
 from twisted.internet.error import ConnectionRefusedError, NoRouteError, UserError
 from twisted.internet.defer import DeferredList
 from ras_api_gateway.host import router
-#from urllib.parse import urlencode
 from urllib.parse import quote
 import treq
 import arrow
-from crochet import wait_for, no_setup
-#no_setup()
+from crochet import wait_for
 #
 #   We don't really want the default logging 'noise' associated with HTTP client requests
 #
@@ -49,8 +47,6 @@ def hit_route(url, params):
         if response.code != 200:
             ons_env.logger.info('ERROR ON "{}"'.format(full_url))
             raise UserError
-
-        ons_env.logger.info("-- Enter -- {} {}".format(url, params))
         return response
 
     route = router.route(url)
@@ -201,7 +197,6 @@ class ONSAggregation(object):
                 business_id = case['caseGroup']['partyId']
                 exercise_id = case['caseGroup']['collectionExerciseId']
                 results[case_id] = {'case': case}
-                #business = hit_route(self.BUSINESS_GET, business_id).addCallback(attach, case_id, 'business')
                 business = hit_route(self.BUSINESS_GET, business_id).addCallback(attach_business, case_id)
                 exercise = hit_route(self.EXERCISE_GET, exercise_id).addCallback(attach_exercise, case_id)
                 dlist += [business, exercise]
@@ -235,9 +230,8 @@ class ONSAggregation(object):
         for item in results.values():
             item_status = self.calculate_case_status(item['case']['caseEvents']).lower()
             if item_status in status_filter:
-                #if 'collectionInstrumentId' in item['business']:
-                item['case']['collectionInstrumentId'] = item['ci'][0]['id']
-
+                if 'ci' in item and len(item['ci']) and 'id' in item['ci'][0]:
+                    item['case']['collectionInstrumentId'] = item['ci'][0]['id']
                 rows.append({
                     'businessData': item['business'],
                     'case': item['case'],

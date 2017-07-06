@@ -123,20 +123,6 @@ class Router(object):
             else:
                 base = 'http://{}'.format(ons_env.api_host)
 
-            #port = 80 if int(route.port) == 443 else route.port
-
-
-            #'protocol': ons_env.get('flask_protocol'),
-            #'host': ons_env.get('flask_host'),
-            #'port': ons_env.get('flask_port'),
-            #'uri': '/api/1.0.0/{}'.format(endpoint)
-
-            #if route.host == 'localhost' and port != 8079:
-            #    base = 'http://{}:{}'.format(
-            #        route.host, route.port,
-            #    )
-            #else:
-            #    base = 'https://{}'.format(route.host)
             items.append([
                 '<a target="_blank" href="{}{}">{}</a>'.format(base, route.uri.decode(), route.name),
                 '{}:{}'.format(route.host, route.port),

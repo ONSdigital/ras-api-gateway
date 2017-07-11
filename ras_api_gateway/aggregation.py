@@ -61,6 +61,12 @@ def hit_route(url, params):
     return treq.get(full_url).addCallback(status_check).addCallback(treq.content)
 
 
+    #    CASES_GET = '/collection-exercise-api/1.0.0/cases/partyid'
+    #    RESPONDENTS_GET = '/party-api/v1/respondents/id/'
+#    SURVEY_GET = '/collection-exercise-api/1.0.0/surveys'
+#    EXERCISE_GET = '/collection-exercise-api/1.0.0/collection-exercise'
+
+
 class ONSAggregation(object):
     """
     Provide an library of aggregation functions that will obtain data from other micro-services
@@ -69,11 +75,14 @@ class ONSAggregation(object):
     # TODO: refactor into config file
     inputDateFormat = 'YYYY-MM-DDThh:mm:ss'
     outputDateFormat = 'D MMM YYYY'
-    CASES_GET = '/collection-exercise-api/1.0.0/cases/partyid'
+
+    CASES_GET = '/cases/partyid'
+    SURVEY_GET = '/surveys'
+
     RESPONDENTS_GET = '/party-api/v1/respondents/id/'
-    SURVEY_GET = '/collection-exercise-api/1.0.0/surveys'
     BUSINESS_GET = '/party-api/v1/businesses/id/'
-    EXERCISE_GET = '/collection-exercise-api/1.0.0/collection-exercise'
+
+    EXERCISE_GET = '/collectionexercises'
     INSTRUMENT_GET = '/collection-instrument-api/1.0.2/collectioninstrument'
 
     @staticmethod
@@ -84,18 +93,17 @@ class ONSAggregation(object):
         :param case_events: A list of case events
         :return: A status string in ['Not Started', 'Completed', 'In Progress']
         """
-        status = ''
-        for event in case_events:
-            if event['category'] == 'COLLECTION_INSTRUMENT_UPLOADED':
-                status = 'Complete'
-                break
-        if status == '':
+        status = 'Not Started'
+        if case_events:
             for event in case_events:
-                if event['category'] == 'COLLECTION_INSTRUMENT_DOWNLOADED':
-                    status = 'In progress'
+                if event['category'] == 'SUCCESSFUL_RESPONSE_UPLOAD':
+                    status = 'Complete'
                     break
-        if status == '':
-            status = 'Not started'
+            if status == '':
+                for event in case_events:
+                    if event['category'] == 'COLLECTION_INSTRUMENT_DOWNLOADED':
+                        status = 'In progress'
+                        break
         return status
 
     @wait_for(timeout=5)
@@ -127,6 +135,9 @@ class ONSAggregation(object):
         :param status_filter: An array of requested statuses (string)
         :return: An aggregated record to be consumed by the mySurveys page
         """
+
+        ons_env.logger.info("**** TODO: {}".format(party_id))
+
         if type(status_filter) != list:
             return make_response('"status filter" needs to be a JSON format list of statuses', 500)
         #
@@ -146,6 +157,8 @@ class ONSAggregation(object):
             return make_response('no such party id "{}"'.format(party_id), 404)
         except Exception as e:
             return make_response(str(e), 500)
+
+        ons_env.logger.info("Cases>", cases)
 
         def attach(blob, case_id, key):
             """
@@ -182,9 +195,21 @@ class ONSAggregation(object):
             for case in cases:
                 def attach_exercise(ex, case_identifier):
                     ex = results[case_identifier]['exercise'] = loads(ex.decode())
-                    for key in ['periodStart', 'periodEnd', 'scheduledReturn']:
-                        ex[key] = ex[key].replace('Z', '')
-                        ex[key + 'Formatted'] = arrow.get(ex[key], self.inputDateFormat).format(self.outputDateFormat)
+                    if not ex:
+                        ons_env.logger.critical('unable to locate exercise "{}"'.format(results))
+                        raise Exception('missing exercise')
+                    for key in ['periodStartDateTime', 'periodEndDateTime', 'scheduledReturnDateTime']:
+                        if not key in ex:
+                            ons_env.logger.critical('missing key "{}" in exercise record with is "{}"'.format(
+                                key,
+                                ex.get('id', 'no key')
+                            ))
+                            continue
+                        if ex[key]:
+                            ex[key] = ex[key].replace('Z', '')
+                            ex[key + 'Formatted'] = arrow.get(ex[key], self.inputDateFormat).format(self.outputDateFormat)
+                        else:
+                            ex[key + 'Formatted'] = 'None'
                     return DeferredList([hit_route(self.SURVEY_GET, ex['surveyId']).addCallback(attach, case_identifier, 'survey')])
 
                 def attach_business(ex, case_identifier):
@@ -197,7 +222,8 @@ class ONSAggregation(object):
                 business_id = case['caseGroup']['partyId']
                 exercise_id = case['caseGroup']['collectionExerciseId']
                 results[case_id] = {'case': case}
-                business = hit_route(self.BUSINESS_GET, business_id).addCallback(attach_business, case_id)
+                business = hit_route(self.BUSINESS_GET, business_id).addCallback(attach, case_id, 'business')
+                #business = hit_route(self.BUSINESS_GET, business_id).addCallback(attach_business, case_id)
                 exercise = hit_route(self.EXERCISE_GET, exercise_id).addCallback(attach_exercise, case_id)
                 dlist += [business, exercise]
             return DeferredList(dlist)
@@ -228,15 +254,17 @@ class ONSAggregation(object):
         #
         rows = []
         for item in results.values():
-            item_status = self.calculate_case_status(item['case']['caseEvents']).lower()
-            if item_status in status_filter:
-                if 'ci' in item and len(item['ci']) and 'id' in item['ci'][0]:
-                    item['case']['collectionInstrumentId'] = item['ci'][0]['id']
-                rows.append({
-                    'businessData': item['business'],
-                    'case': item['case'],
-                    'collectionExerciseData': item['exercise'],
-                    'surveyData': item['survey'],
-                    'status': item_status
-                })
+            item_status = self.calculate_case_status(item.get('case', {}).get('caseEvents', '')).lower()
+#            if item_status in status_filter:
+            ons_env.logger.info('Case-Events: {}'.format(item.get('case', 'None')))
+            #if 'ci' in item and len(item['ci']) and 'id' in item['ci'][0]:
+            #    item['case']['collectionInstrumentId'] = item['ci'][0]['id']
+            rows.append({
+                'businessData': item.get('business', '*** NO BUSINESS DATA ***'),
+                'case': item.get('case', '*** NO CASE DATA ***'),
+                'collectionExerciseData': item.get('exercise', '*** NO EXERCISE DATA ***'),
+                'surveyData': item.get('survey', '*** NO SURVEY DATA ***'),
+                'status': item_status
+            })
+        print('Rows="{}"'.format(rows))
         return make_response(jsonify({'userData': loads(deferreds[0][1].decode()), 'rows': rows}), 200)

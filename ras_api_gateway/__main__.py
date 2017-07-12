@@ -5,30 +5,30 @@
 #   Copyright (c) 2017 Crown Copyright (Office for National Statistics)      #
 #                                                                            #
 ##############################################################################
-from twisted.internet import epollreactor
-epollreactor.install()
+from ons_ras_common import ons_env
 from twisted.internet import reactor
-from twisted.python import log
+from twisted.internet.task import LoopingCall
 from twisted.web import client
-from flask_twisted import Twisted
-from sys import stdout
 from ras_api_gateway.factory_proxy import ProxyFactory
-from swagger_server.configuration import ons_env
-from connexion import App
-from flask_cors import CORS
-from ras_api_gateway.proxy_router import router
-import logging
-
+from ras_api_gateway.host import router
+#from twisted.python import log
+#from sys import stdout
+#log.startLogging(stdout)
+#
+#   This is the standard / minimal startup routine with a callback designed
+#   to startup an additional Twisted service on port 8080. (the proxy) We're
+#   going to call router.activate once after a 1s delay, then router.expire
+#   every 8s.
+#
 if __name__ == '__main__':
-    ons_env.activate()
-    logging.getLogger('twisted').setLevel(logging.DEBUG)
-    log.startLogging(stdout)
-    client._HTTP11ClientFactory.noisy = False
-    app = App(__name__, specification_dir='../swagger_server/swagger/')
-    CORS(app.app)
-    app.add_api('swagger.yaml', arguments={'title': 'ONS Microservice'})
-    reactor.suggestThreadPoolSize(200)
-    reactor.listenTCP(8080, ProxyFactory())
-    reactor.callLater(1, router.setup)
-    Twisted(app).run(port=8079)
+
+    def callback(app):
+        client._HTTP11ClientFactory.noisy = False
+        reactor.suggestThreadPoolSize(200)
+        reactor.listenTCP(8080, ProxyFactory())
+        reactor.callLater(1, router.activate)
+        LoopingCall(router.expire).start(8, now=False)
+
+    ons_env.activate(callback)
+
 

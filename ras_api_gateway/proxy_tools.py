@@ -8,6 +8,10 @@
 from sys import _getframe
 from twisted.python import log
 
+#
+#   This logging class is probably redundant and should be replaced by standardises
+#   logging routines when they become available.
+#
 
 class ProxyTools(object):
 

@@ -4,5 +4,5 @@ if ! [ -a .build ] ; then
 	virtualenv .build -p python3
 fi
 source .build/bin/activate
-pip3 -q install -r requirements.txt
+pip3 install -r requirements.txt --upgrade
 python3 -m ras_api_gateway

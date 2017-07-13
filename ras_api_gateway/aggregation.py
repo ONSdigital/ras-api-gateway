@@ -114,7 +114,7 @@ class ONSAggregation(object):
         :param party_id: The partyId to search for
         :return: A Case record
         """
-        return hit_route(self.CASES_GET, party_id)
+        return hit_route(self.CASES_GET, '{}?{}'.format(party_id,'caseevents=true'))
 
     def survey_todo(self, party_id, status_filter):
         """
@@ -255,10 +255,8 @@ class ONSAggregation(object):
         rows = []
         for item in results.values():
             item_status = self.calculate_case_status(item.get('case', {}).get('caseEvents', '')).lower()
-#            if item_status in status_filter:
-            ons_env.logger.info('Case-Events: {}'.format(item.get('case', 'None')))
-            #if 'ci' in item and len(item['ci']) and 'id' in item['ci'][0]:
-            #    item['case']['collectionInstrumentId'] = item['ci'][0]['id']
+            if item_status not in status_filter:
+                continue
             rows.append({
                 'businessData': item.get('business', '*** NO BUSINESS DATA ***'),
                 'case': item.get('case', '*** NO CASE DATA ***'),
@@ -266,5 +264,4 @@ class ONSAggregation(object):
                 'surveyData': item.get('survey', '*** NO SURVEY DATA ***'),
                 'status': item_status
             })
-        print('Rows="{}"'.format(rows))
         return make_response(jsonify({'userData': loads(deferreds[0][1].decode()), 'rows': rows}), 200)

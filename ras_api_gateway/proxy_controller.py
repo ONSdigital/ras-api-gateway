@@ -89,6 +89,11 @@ def survey_todo(id=None, status_filter=None):
     :param status_filter: The statuses we're interested in
     :return: A data object suitable for producing "mySurveys"
     """
-    response = aggregator.survey_todo(id, loads(status_filter))
+    try:
+        status_filter = loads(status_filter)
+    except Exception as e:
+        return ons_env.logger.error('invalid filter "{}"'.format(str(e)))
+
+    response = aggregator.survey_todo(id, status_filter)
     return response
 

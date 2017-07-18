@@ -26,7 +26,7 @@ class Router(object):
         ons_env.logger.info('[router] {}'.format(text))
 
     def activate(self):
-        self.info('Router is running on port "{}"'.format(ons_env.port))
+        self.info('Router is running on port "{}"'.format(ons_env.flask_port))
         for endpoint in ['register', 'ping']:
             self.register({
                 'protocol': ons_env.get('flask_protocol'),

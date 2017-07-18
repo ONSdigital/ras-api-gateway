@@ -24,14 +24,15 @@ class Router(object):
         self._hits = 0
 
     def activate(self):
-        ons_env.logger.info('Router is running on port "{}"'.format(ons_env.flask_port))
         for endpoint in ['register', 'ping']:
-            self.register({
-                'protocol': ons_env.flask_protocol, #ons_env.get('flask_protocol'),
-                'host': ons_env.flask_host, #ons_env.get('flask_host'),
-                'port': ons_env.flask_port, #ons_env.get('flask_port'),
+            route = {
+                'protocol': ons_env.get('flask_protocol'),
+                'host': ons_env.get('flask_host'),
+                'port': ons_env.get('flask_port'),
                 'uri': '/api/1.0.0/{}'.format(endpoint)
-            })
+            }
+            ons_env.logger.info('Register: {protocol}:/{host}:{port}/{uri}'.format(**route))
+            self.register(route)
         self._hosts = {}
 
     def route(self, uri):

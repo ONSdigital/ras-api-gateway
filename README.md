@@ -29,3 +29,4 @@ are currently loaded from a public CDN and the source for the skin can be found 
 The meat of the code is in the ras_api_gateway folder, moving forward the business logic is
 on aggregation.py. There is more refactoring that can be done here but we currently have a
 documented / working pattern with error checking
+.

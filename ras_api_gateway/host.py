@@ -22,11 +22,8 @@ class Router(object):
         self._endpoints = {}
         self._hits = 0
 
-    def info(self, text):
-        ons_env.logger.info('[router] {}'.format(text))
-
     def activate(self):
-        self.info('Router is running on port "{}"'.format(ons_env.flask_port))
+        ons_env.logger.info('Router is running on port "{}"'.format(ons_env.flask_port))
         for endpoint in ['register', 'ping']:
             self.register({
                 'protocol': ons_env.get('flask_protocol'),
@@ -73,9 +70,10 @@ class Router(object):
         """
         for attribute in ['protocol', 'host', 'port', 'uri']:
             if attribute not in details:
-                self.info("attribute '{}' is missing".format(attribute))
+                ons_env.logger.info("attribute '{}' is missing".format(attribute))
                 return False
 
+        print("Details>", details.items())
         return self.update(details)
 
     def update(self, details):
@@ -95,7 +93,7 @@ class Router(object):
         if route.is_ui:
             self._hosts[key] = route
 
-        self.info('registered "{}" "{uri}"'.format(key, **details))
+        ons_env.logger.info('registered "{}" "{uri}"'.format(key, **details))
         return True
 
     def register_json(self, details):
@@ -152,7 +150,7 @@ class Router(object):
                         to_delete.append(path)
 
                 if len(to_delete):
-                    self.info('[expire task] deleting "{}" endpoints for "{}"'.format(len(to_delete), key))
+                    ons_env.logger.info('[expire task] deleting "{}" endpoints for "{}"'.format(len(to_delete), key))
                     for item in to_delete:
                         del self._endpoints[item]
 

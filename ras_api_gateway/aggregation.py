@@ -51,13 +51,13 @@ def hit_route(url, params):
 
     route = router.route(url)
     if not route:
-        ons_env.logger.info('NO ROUTE FOR ({} <=> {})'.format(url, params))
-        raise NoRouteError
+        ons_env.logger.error('no route to host for "{}{}"'.format(url, params))
+        raise NoRouteError(url, params)
 
     if params[0] != '?':
         params = '/'+params
     full_url = '{}{}'.format(route.txt, params)
-    ons_env.logger.info('==>{}'.format(full_url))
+    ons_env.logger.debug('request against {}'.format(full_url))
     return treq.get(full_url).addCallback(status_check).addCallback(treq.content)
 
 
@@ -136,7 +136,7 @@ class ONSAggregation(object):
         :return: An aggregated record to be consumed by the mySurveys page
         """
 
-        ons_env.logger.info("**** TODO: {}".format(party_id))
+        ons_env.logger.debug('survey todo request for "{}"'.format(party_id))
 
         if type(status_filter) != list:
             return make_response('"status filter" needs to be a JSON format list of statuses', 500)
@@ -158,8 +158,6 @@ class ONSAggregation(object):
         except Exception as e:
             return make_response(str(e), 500)
 
-        ons_env.logger.info("Cases> {}".format(cases))
-
         def attach(blob, case_id, key):
             """
             This is a convenience method that is executed when a request to another micro-service completes. It
@@ -173,7 +171,7 @@ class ONSAggregation(object):
             :param key: The particular response we're expecting, i.e. business, survey, etc ...
             :return: A tuple emulating a successfully completed deferred() request
             """
-            ons_env.logger.info("CASE={} KEY={} BLOB={}".format(case_id, key, loads(blob.decode())))
+            ons_env.logger.debug('cascade results, case="{}" key="{}" blob="{}"'.format(case_id, key, loads(blob.decode())))
             results[case_id][key] = loads(blob.decode())
             return True, None
         #
@@ -228,7 +226,11 @@ class ONSAggregation(object):
                 dlist += [business, exercise]
             return DeferredList(dlist)
 
-        deferreds = fetch_rows()
+        try:
+            deferreds = fetch_rows()
+        except Exception as e:
+            return make_response(str(e), 500)
+
         #
         #   We arrive back here when all the deferred requests in fetch_rows have completed. (thanks to the
         #   'wait_for' decorator on fetch_rows. At this point each deferred is a tuple of (True|False) and
@@ -239,7 +241,7 @@ class ONSAggregation(object):
         #
         for deferred in deferreds:
             if not deferred[0]:
-                ons_env.logger.info("FAILED: {}".format(deferred[1]))
+                ons_env.logger.error('request failed "{}"'.format(deferred[1]))
                 return make_response(deferred[1] if deferred[1] == str else deferred[1].getErrorMessage(), 500)
         #
         #   This is the 'gather' stage, it might seem a little counter-intuitive looking a the above test,

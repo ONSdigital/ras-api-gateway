@@ -31,7 +31,6 @@ class Router(object):
                 'port': ons_env.get('flask_port'),
                 'uri': '/api/1.0.0/{}'.format(endpoint)
             }
-            ons_env.logger.info('Register: {protocol}:/{host}:{port}/{uri}'.format(**route))
             self.register(route)
         self._hosts = {}
 
@@ -75,7 +74,6 @@ class Router(object):
                 ons_env.logger.info("attribute '{}' is missing".format(attribute))
                 return False
 
-        print("Details>", details.items())
         return self.update(details)
 
     def update(self, details):

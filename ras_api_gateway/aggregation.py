@@ -158,7 +158,7 @@ class ONSAggregation(object):
         except Exception as e:
             return make_response(str(e), 500)
 
-        ons_env.logger.info("Cases>", cases)
+        ons_env.logger.info("Cases> {}".format(cases))
 
         def attach(blob, case_id, key):
             """

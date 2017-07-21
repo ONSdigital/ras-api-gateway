@@ -1,10 +1,10 @@
-##############################################################################
-#                                                                            #
-#   ONS / RAS API Gateway                                                    #
-#   License: MIT                                                             #
-#   Copyright (c) 2017 Crown Copyright (Office for National Statistics)      #
-#                                                                            #
-##############################################################################
+"""
+
+   ONS / RAS API Gateway
+   License: MIT
+   Copyright (c) 2017 Crown Copyright (Office for National Statistics)
+
+"""
 from flask import jsonify, make_response
 from json import loads, dumps
 from ons_ras_common import ons_env
@@ -54,10 +54,17 @@ def hit_route(url, params):
         ons_env.logger.error('no route to host for "{}{}"'.format(url, params))
         raise NoRouteError(url, params)
 
+    ons_env.logger.info('URL={}'.format(url))
+
     if params[0] != '?':
         params = '/'+params
-    full_url = '{}{}'.format(route.txt, params)
-    ons_env.logger.debug('request against {}'.format(full_url))
+
+    ons_env.logger.info(route.txt)
+    ons_env.logger.info(url)
+    ons_env.logger.info(params)
+
+    full_url = '{}{}{}'.format(route.txt, url, params)
+    ons_env.logger.info('request against {}'.format(full_url))
     return treq.get(full_url).addCallback(status_check).addCallback(treq.content)
 
 
@@ -79,8 +86,8 @@ class ONSAggregation(object):
     CASES_GET = '/cases/partyid'
     SURVEY_GET = '/surveys'
 
-    RESPONDENTS_GET = '/party-api/v1/respondents/id/'
-    BUSINESS_GET = '/party-api/v1/businesses/id/'
+    RESPONDENTS_GET = '/party-api/v1/respondents/id'
+    BUSINESS_GET = '/party-api/v1/businesses/id'
 
     EXERCISE_GET = '/collectionexercises'
     INSTRUMENT_GET = '/collection-instrument-api/1.0.2/collectioninstrument'

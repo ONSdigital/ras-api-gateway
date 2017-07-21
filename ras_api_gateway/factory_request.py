@@ -1,15 +1,14 @@
-##############################################################################
-#                                                                            #
-#   ONS / RAS API Gateway                                                    #
-#   License: MIT                                                             #
-#   Copyright (c) 2017 Crown Copyright (Office for National Statistics)      #
-#                                                                            #
-##############################################################################
+"""
+
+   ONS / RAS API Gateway
+   License: MIT
+   Copyright (c) 2017 Crown Copyright (Office for National Statistics)
+
+"""
 from ons_ras_common import ons_env
 from twisted.web import proxy
 from twisted.internet import reactor, ssl
 from .factory_client import ProxyClientFactory
-from .proxy_tools import ProxyTools
 from datetime import datetime, timedelta
 from ras_api_gateway.host import router
 
@@ -19,7 +18,7 @@ from ras_api_gateway.host import router
 #   token in the header of the ongoing request.
 #
 
-class ProxyRequest(proxy.ProxyRequest, ProxyTools):
+class ProxyRequest(proxy.ProxyRequest):
     """ this is where the transaction is initially received """
     protocols = dict(http=ProxyClientFactory, https=ProxyClientFactory)
     noisy = False
@@ -50,6 +49,6 @@ class ProxyRequest(proxy.ProxyRequest, ProxyTools):
                 self.setResponseCode(404, b'no such API endpoint')
                 self.finish()
         except Exception as e:
-            self.syslog('Error: {}'.format(str(e)))
+            ons_env.logger.error(str(e))
             self.setResponseCode(500, b'unknown system error')
             self.finish()

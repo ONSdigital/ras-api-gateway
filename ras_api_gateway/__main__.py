@@ -28,7 +28,7 @@ if __name__ == '__main__':
         reactor.suggestThreadPoolSize(200)
         reactor.listenTCP(int(getenv('PORT', 8080)), ProxyFactory())
         reactor.callLater(1, router.activate)
-        LoopingCall(router.expire).start(8, now=False)
+        #LoopingCall(router.expire).start(8, now=False)
 
     ons_env.activate(callback)
 

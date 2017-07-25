@@ -18,6 +18,8 @@ from ons_ras_common import ons_env
 
 class MyProxyClient(proxy.ProxyClient):
 
+    noisy = False
+
     def __init__(self, *args, **kwargs):
         self._cors = False
         super().__init__(*args, **kwargs)

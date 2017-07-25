@@ -14,7 +14,6 @@ from ras_api_gateway.host import router
 from twisted.python import log
 from sys import stdout
 from os import getenv
-#log.startLogging(stdout)
 #
 #   This is the standard / minimal startup routine with a callback designed
 #   to startup an additional Twisted service on port 8080. (the proxy) We're
@@ -28,8 +27,7 @@ if __name__ == '__main__':
         reactor.suggestThreadPoolSize(200)
         reactor.listenTCP(int(getenv('PORT', 8080)), ProxyFactory())
         reactor.callLater(1, router.activate)
-        #LoopingCall(router.expire).start(8, now=False)
 
-    ons_env.activate(callback)
+    ons_env.activate(callback, twisted=True)
 
 

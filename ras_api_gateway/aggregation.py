@@ -54,24 +54,12 @@ def hit_route(url, params):
         ons_env.logger.error('no route to host for "{}{}"'.format(url, params))
         raise NoRouteError(url, params)
 
-    ons_env.logger.info('URL={}'.format(url))
-
     if params[0] != '?':
         params = '/'+params
 
-    ons_env.logger.info(route.txt)
-    ons_env.logger.info(url)
-    ons_env.logger.info(params)
-
     full_url = '{}{}{}'.format(route.txt, url, params)
-    ons_env.logger.info('request against {}'.format(full_url))
+    ons_env.logger.info('access "{}"'.format(full_url))
     return treq.get(full_url).addCallback(status_check).addCallback(treq.content)
-
-
-    #    CASES_GET = '/collection-exercise-api/1.0.0/cases/partyid'
-    #    RESPONDENTS_GET = '/party-api/v1/respondents/id/'
-#    SURVEY_GET = '/collection-exercise-api/1.0.0/surveys'
-#    EXERCISE_GET = '/collection-exercise-api/1.0.0/collection-exercise'
 
 
 class ONSAggregation(object):
@@ -178,8 +166,11 @@ class ONSAggregation(object):
             :param key: The particular response we're expecting, i.e. business, survey, etc ...
             :return: A tuple emulating a successfully completed deferred() request
             """
-            ons_env.logger.debug('cascade results, case="{}" key="{}" blob="{}"'.format(case_id, key, loads(blob.decode())))
-            results[case_id][key] = loads(blob.decode())
+            data = loads(blob.decode())
+            ons_env.logger.debug('cascade results, case="{}" key="{}"'.format(case_id, key))
+            ons_env.logger.debug(data)
+
+            results[case_id][key] = data
             return True, None
         #
         #   results is the object we use to store results as they come back from the various remote requests
@@ -201,7 +192,8 @@ class ONSAggregation(object):
                 def attach_exercise(ex, case_identifier):
                     ex = results[case_identifier]['exercise'] = loads(ex.decode())
                     if not ex:
-                        ons_env.logger.critical('unable to locate exercise "{}"'.format(results))
+                        ons_env.logger.critical('unable to locate exercise')
+                        ons_env.logger.critical(results)
                         raise Exception('missing exercise')
                     for key in ['periodStartDateTime', 'periodEndDateTime', 'scheduledReturnDateTime']:
                         if not key in ex:
@@ -217,18 +209,11 @@ class ONSAggregation(object):
                             ex[key + 'Formatted'] = 'None'
                     return DeferredList([hit_route(self.SURVEY_GET, ex['surveyId']).addCallback(attach, case_identifier, 'survey')])
 
-                def attach_business(ex, case_identifier):
-                    ex = results[case_identifier]['business'] = loads(ex.decode())
-                    ru_ref = dumps({"RU_REF": "{}".format(ex['businessRef'])})
-                    params = "?searchString={}".format(quote(ru_ref))
-                    return DeferredList([hit_route(self.INSTRUMENT_GET, params).addCallback(attach, case_identifier, 'ci')])
-
                 case_id = case['id']
                 business_id = case['caseGroup']['partyId']
                 exercise_id = case['caseGroup']['collectionExerciseId']
                 results[case_id] = {'case': case}
                 business = hit_route(self.BUSINESS_GET, business_id).addCallback(attach, case_id, 'business')
-                #business = hit_route(self.BUSINESS_GET, business_id).addCallback(attach_business, case_id)
                 exercise = hit_route(self.EXERCISE_GET, exercise_id).addCallback(attach_exercise, case_id)
                 dlist += [business, exercise]
             return DeferredList(dlist)
@@ -248,7 +233,8 @@ class ONSAggregation(object):
         #
         for deferred in deferreds:
             if not deferred[0]:
-                ons_env.logger.error('request failed "{}"'.format(deferred[1]))
+                ons_env.logger.error('request failed')
+                ons_env.logger.error(deferred[1])
                 return make_response(deferred[1] if deferred[1] == str else deferred[1].getErrorMessage(), 500)
         #
         #   This is the 'gather' stage, it might seem a little counter-intuitive looking a the above test,

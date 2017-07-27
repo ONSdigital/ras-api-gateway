@@ -234,8 +234,9 @@ class ONSAggregation(object):
         for deferred in deferreds:
             if not deferred[0]:
                 ons_env.logger.error('request failed')
-                ons_env.logger.error(deferred[1])
-                return make_response(deferred[1] if deferred[1] == str else deferred[1].getErrorMessage(), 500)
+                result = deferred[1] if deferred[1] == str else deferred[1].getErrorMessage()
+                ons_env.logger.error(result)
+                return make_response(result, 500)
         #
         #   This is the 'gather' stage, it might seem a little counter-intuitive looking a the above test,
         #   but the returning deferreds contain resulting status information and meta-data. As requests have

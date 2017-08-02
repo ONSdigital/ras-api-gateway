@@ -32,19 +32,19 @@ class Router(object):
         #
         #   My Surveys Endpoint
         #
-        #route = {
-        #    'protocol': 'http',
-        #    'host': 'localhost',
-        #    'port': 8079,
-        #    'uri': '/api/1.0.0/surveys/todo'
-        #}
-        #self.register(route)
-        for uri in ['surveys/todo', 'info']:
+        for uri in ['surveys/todo']:
             self.register({
                 'protocol': 'http',
                 'host': 'localhost',
                 'port': 8079,
                 'uri': '/api/1.0.0/{}'.format(uri)
+            })
+        for uri in ['info']:
+            self.register({
+                'protocol': 'http',
+                'host': 'localhost',
+                'port': 8079,
+                'uri': '/{}'.format(uri)
             })
 
     def route(self, uri):

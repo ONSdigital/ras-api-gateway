@@ -15,3 +15,9 @@ print(_info)
 
 from ons_ras_common import ons_env
 print("ONS_ENV:", ons_env)
+
+
+GIT_COMMIT=5b1bd4cdb669e502e1aa856a09626e3c43dc451d
+GIT_BRANCH=origin/TBL063/health_check
+JOB_BASE_NAME=RAS Test API Gateway
+GIT_URL=https://github.com/ONSdigital/ras-api-gateway.git

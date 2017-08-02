@@ -3,6 +3,14 @@ consumes: [application/json]
 host: localhost:8080
 info: {title: RAS API Gateway, version: 1.0.0}
 paths:
+  /info:
+    get:
+      description: Basic service health check
+      operationId: info
+      responses:
+        200: {description: documented info structure}
+        500: {description: server error}
+      x-swagger-router-controller: ras_api_gateway.proxy_controller
   /surveys/todo/{id}:
     get:
       description: Aggregated call based on a party identifier

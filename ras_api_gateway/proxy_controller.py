@@ -5,17 +5,36 @@
    Copyright (c) 2017 Crown Copyright (Office for National Statistics)
 
 """
+__version__ = '0.1.0'
+
 from ons_ras_common import ons_env
 from flask import jsonify, make_response
 from ras_api_gateway.host import router
 from json import loads
 from jinja2 import Environment, FileSystemLoader
 import twisted.internet._sslverify as v
+from pygit2 import Repository
+from datetime import datetime
 from .aggregation import ONSAggregation
 #
 #   Disable SSL tail certificate verification
 #
 v.platformTrust = lambda : None
+#
+#   Set up static data for /info endpoint
+#
+_repo = Repository('.')
+_commit = _repo.revparse_single('HEAD')
+#
+_info_reply = {
+    'name': 'ras_api_gateway',
+    'version': __version__,
+    'origin': [x.url for x in _repo.remotes][0],
+    'commit': '{}'.format(_commit.id),
+    'branch': _repo.head.name,
+    'built': datetime.fromtimestamp(_commit.commit_time).isoformat()
+}
+print(_info_reply)
 #
 #   Set up a Jinja2 environment to serve up the "mygateways" page
 #
@@ -57,3 +76,7 @@ def survey_todo(id=None, status_filter=None):
 
     response = aggregator.survey_todo(id, status_filter)
     return response
+
+
+def info():
+    return make_response(jsonify(_info_reply))

@@ -48,8 +48,6 @@ RAS_SECURE_MESSAGING_SERVICE_PORT = os.getenv('RAS_SECURE_MESSAGING_SERVICE_PORT
 RAS_SECURE_MESSAGING_SERVICE_PROTOCOL = os.getenv('RAS_SECURE_MESSAGING_SERVICE_PROTOCOL', 'http')
 
 
-# FIXME: there is a namespace conflict on /info between the sample service and the action service.
-
 
 routes = []
 
@@ -168,12 +166,6 @@ routes.append({
     'protocol': RM_NOTIFY_GATEWAY_SERVICE_PROTOCOL
 })
 routes.append({
-    'uri': '/info',
-    'host': RM_ACTION_SERVICE_HOST,
-    'port': RM_ACTION_SERVICE_PORT,
-    'protocol': RM_ACTION_SERVICE_PROTOCOL
-})
-routes.append({
     'uri': '/actions',
     'host': RM_ACTION_SERVICE_HOST,
     'port': RM_ACTION_SERVICE_PORT,
@@ -184,12 +176,6 @@ routes.append({
     'host': RM_ACTION_SERVICE_HOST,
     'port': RM_ACTION_SERVICE_PORT,
     'protocol': RM_ACTION_SERVICE_PROTOCOL
-})
-routes.append({
-    'uri': '/info2',
-    'host': RM_SAMPLE_SERVICE_HOST,
-    'port': RM_SAMPLE_SERVICE_PORT,
-    'protocol': RM_SAMPLE_SERVICE_PROTOCOL
 })
 routes.append({
     'uri': '/sampleunitrequests',

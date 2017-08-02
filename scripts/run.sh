@@ -4,7 +4,7 @@ if ! [ -a .build ] ; then
 	virtualenv .build -p python3
 fi
 source .build/bin/activate
-pip3 install -r requirements.txt 
+pip3 install -r requirements.txt --upgrade
 RM_CASE_SERVICE_PORT=80 RM_CASE_SERVICE_HOST=casesvc-int.apps.devtest.onsclofo.uk \
 RM_COLLECTIONEXERCISE_SERVICE_PORT=80 RM_COLLECTIONEXERCISE_SERVICE_HOST=collectionexercisesvc-int.apps.devtest.onsclofo.uk \
 RM_IAC_SERVICE_PORT=80 RM_IAC_SERVICE_HOST=iacsvc-int.apps.devtest.onsclofo.uk \

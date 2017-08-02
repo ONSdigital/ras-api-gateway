@@ -11,11 +11,20 @@ from ras_api_gateway.host import router
 from json import loads
 from jinja2 import Environment, FileSystemLoader
 import twisted.internet._sslverify as v
+from pathlib import Path
 from .aggregation import ONSAggregation
 #
 #   Disable SSL tail certificate verification
 #
 v.platformTrust = lambda : None
+
+if Path('git_info').exists():
+    with open('git_info') as io:
+        _git_info = loads(io.read())
+else:
+    _git_info = {}
+
+_git_info = dict(_git_info, **{'version': ons_env.get('version', 'no version')})
 #
 #   Set up a Jinja2 environment to serve up the "mygateways" page
 #
@@ -60,4 +69,4 @@ def survey_todo(id=None, status_filter=None):
 
 
 def info():
-    return make_response(jsonify({}))
+    return make_response(jsonify(_git_info))

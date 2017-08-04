@@ -28,6 +28,7 @@ if __name__ == '__main__':
         port = int(getenv('PORT', 8080)) if not ons_env.cf.detected else ons_env.cf.port
         reactor.listenTCP(port, ProxyFactory())
         reactor.callLater(1, router.activate)
+        ons_env.logger.info('* api gateway listening on local port "{}"'.format(port))
 
     ons_env.activate(callback, twisted=True)
 

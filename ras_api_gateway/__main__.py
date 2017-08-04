@@ -25,7 +25,8 @@ if __name__ == '__main__':
     def callback(app):
         client._HTTP11ClientFactory.noisy = False
         reactor.suggestThreadPoolSize(200)
-        reactor.listenTCP(int(getenv('PORT', 8080)), ProxyFactory())
+        port = int(getenv('PORT', 8080)) if not ons_env.cf.detected else ons_env.cf.port
+        reactor.listenTCP(port, ProxyFactory())
         reactor.callLater(1, router.activate)
 
     ons_env.activate(callback, twisted=True)

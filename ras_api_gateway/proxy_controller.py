@@ -57,3 +57,7 @@ def survey_todo(id=None, status_filter=None):
 
     response = aggregator.survey_todo(id, status_filter)
     return response
+
+
+def info():
+    return make_response(jsonify(ons_env.info))

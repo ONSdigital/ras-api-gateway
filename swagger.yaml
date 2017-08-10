@@ -1,52 +1,8 @@
 basePath: /api/1.0.0
 consumes: [application/json]
-definitions: {}
 host: localhost:8080
 info: {title: RAS API Gateway, version: 1.0.0}
 paths:
-  /mygateway:
-    get:
-      operationId: mygateway
-      responses:
-        200: {description: status supplied}
-        500: {description: server error}
-      x-swagger-router-controller: ras_api_gateway.proxy_controller
-  /ping/{host}/{port}:
-    get:
-      operationId: ping
-      parameters:
-      - {in: path, name: host, required: true, type: string}
-      - {in: path, name: port, required: true, type: string}
-      responses:
-        200: {description: api gateway is up and your routes are registered}
-        204: {description: api gateway is up but you need to re-register}
-        500: {description: server error}
-      x-swagger-router-controller: ras_api_gateway.proxy_controller
-  /register:
-    post:
-      operationId: register
-      parameters:
-      - {in: formData, name: details, required: true, type: string}
-      responses:
-        200: {description: endpoint registered}
-        500: {description: server error}
-      x-swagger-router-controller: ras_api_gateway.proxy_controller
-  /routes:
-    get:
-      operationId: get_routes
-      responses:
-        200: {description: status supplied}
-        500: {description: server error}
-      x-swagger-router-controller: ras_api_gateway.proxy_controller
-  /status:
-    get:
-      operationId: status
-      parameters:
-      - {in: query, name: _, required: false, type: string}
-      responses:
-        200: {description: status supplied}
-        500: {description: server error}
-      x-swagger-router-controller: ras_api_gateway.proxy_controller
   /surveys/todo/{id}:
     get:
       description: Aggregated call based on a party identifier

@@ -1,10 +1,10 @@
-##############################################################################
-#                                                                            #
-#   ONS / RAS API Gateway                                                    #
-#   License: MIT                                                             #
-#   Copyright (c) 2017 Crown Copyright (Office for National Statistics)      #
-#                                                                            #
-##############################################################################
+"""
+
+   ONS / RAS API Gateway
+   License: MIT
+   Copyright (c) 2017 Crown Copyright (Office for National Statistics)
+
+"""
 from flask import jsonify, make_response
 from json import loads, dumps
 from ons_ras_common import ons_env
@@ -12,12 +12,10 @@ from twisted.web import client
 from twisted.internet.error import ConnectionRefusedError, NoRouteError, UserError
 from twisted.internet.defer import DeferredList
 from ras_api_gateway.host import router
-#from urllib.parse import urlencode
 from urllib.parse import quote
 import treq
 import arrow
-from crochet import wait_for, no_setup
-#no_setup()
+from crochet import wait_for
 #
 #   We don't really want the default logging 'noise' associated with HTTP client requests
 #
@@ -49,19 +47,18 @@ def hit_route(url, params):
         if response.code != 200:
             ons_env.logger.info('ERROR ON "{}"'.format(full_url))
             raise UserError
-
-        ons_env.logger.info("-- Enter -- {} {}".format(url, params))
         return response
 
     route = router.route(url)
     if not route:
-        ons_env.logger.info('NO ROUTE FOR ({} <=> {})'.format(url, params))
-        raise NoRouteError
+        ons_env.logger.error('no route to host for "{}{}"'.format(url, params))
+        raise NoRouteError(url, params)
 
     if params[0] != '?':
         params = '/'+params
-    full_url = '{}{}'.format(route.txt, params)
-    ons_env.logger.info('==>{}'.format(full_url))
+
+    full_url = '{}{}{}'.format(route.txt, url, params)
+    ons_env.logger.info('access "{}"'.format(full_url))
     return treq.get(full_url).addCallback(status_check).addCallback(treq.content)
 
 
@@ -73,11 +70,14 @@ class ONSAggregation(object):
     # TODO: refactor into config file
     inputDateFormat = 'YYYY-MM-DDThh:mm:ss'
     outputDateFormat = 'D MMM YYYY'
-    CASES_GET = '/collection-exercise-api/1.0.0/cases/partyid'
-    RESPONDENTS_GET = '/party-api/v1/respondents/id/'
-    SURVEY_GET = '/collection-exercise-api/1.0.0/surveys'
-    BUSINESS_GET = '/party-api/v1/businesses/id/'
-    EXERCISE_GET = '/collection-exercise-api/1.0.0/collection-exercise'
+
+    CASES_GET = '/cases/partyid'
+    SURVEY_GET = '/surveys'
+
+    RESPONDENTS_GET = '/party-api/v1/respondents/id'
+    BUSINESS_GET = '/party-api/v1/businesses/id'
+
+    EXERCISE_GET = '/collectionexercises'
     INSTRUMENT_GET = '/collection-instrument-api/1.0.2/collectioninstrument'
 
     @staticmethod
@@ -88,18 +88,17 @@ class ONSAggregation(object):
         :param case_events: A list of case events
         :return: A status string in ['Not Started', 'Completed', 'In Progress']
         """
-        status = ''
-        for event in case_events:
-            if event['category'] == 'COLLECTION_INSTRUMENT_UPLOADED':
-                status = 'Complete'
-                break
-        if status == '':
+        status = 'Not Started'
+        if case_events:
             for event in case_events:
-                if event['category'] == 'COLLECTION_INSTRUMENT_DOWNLOADED':
-                    status = 'In progress'
+                if event['category'] == 'SUCCESSFUL_RESPONSE_UPLOAD':
+                    status = 'Complete'
                     break
-        if status == '':
-            status = 'Not started'
+            if status == '':
+                for event in case_events:
+                    if event['category'] == 'COLLECTION_INSTRUMENT_DOWNLOADED':
+                        status = 'In progress'
+                        break
         return status
 
     @wait_for(timeout=5)
@@ -110,7 +109,7 @@ class ONSAggregation(object):
         :param party_id: The partyId to search for
         :return: A Case record
         """
-        return hit_route(self.CASES_GET, party_id)
+        return hit_route(self.CASES_GET, '{}?{}'.format(party_id,'caseevents=true'))
 
     def survey_todo(self, party_id, status_filter):
         """
@@ -131,6 +130,9 @@ class ONSAggregation(object):
         :param status_filter: An array of requested statuses (string)
         :return: An aggregated record to be consumed by the mySurveys page
         """
+
+        ons_env.logger.debug('survey todo request for "{}"'.format(party_id))
+
         if type(status_filter) != list:
             return make_response('"status filter" needs to be a JSON format list of statuses', 500)
         #
@@ -164,8 +166,11 @@ class ONSAggregation(object):
             :param key: The particular response we're expecting, i.e. business, survey, etc ...
             :return: A tuple emulating a successfully completed deferred() request
             """
-            ons_env.logger.info("CASE={} KEY={} BLOB={}".format(case_id, key, loads(blob.decode())))
-            results[case_id][key] = loads(blob.decode())
+            data = loads(blob.decode())
+            ons_env.logger.debug('cascade results, case="{}" key="{}"'.format(case_id, key))
+            ons_env.logger.debug(data)
+
+            results[case_id][key] = data
             return True, None
         #
         #   results is the object we use to store results as they come back from the various remote requests
@@ -186,28 +191,38 @@ class ONSAggregation(object):
             for case in cases:
                 def attach_exercise(ex, case_identifier):
                     ex = results[case_identifier]['exercise'] = loads(ex.decode())
-                    for key in ['periodStart', 'periodEnd', 'scheduledReturn']:
-                        ex[key] = ex[key].replace('Z', '')
-                        ex[key + 'Formatted'] = arrow.get(ex[key], self.inputDateFormat).format(self.outputDateFormat)
+                    if not ex:
+                        ons_env.logger.critical('unable to locate exercise')
+                        ons_env.logger.critical(results)
+                        raise Exception('missing exercise')
+                    for key in ['periodStartDateTime', 'periodEndDateTime', 'scheduledReturnDateTime']:
+                        if not key in ex:
+                            ons_env.logger.critical('missing key "{}" in exercise record with is "{}"'.format(
+                                key,
+                                ex.get('id', 'no key')
+                            ))
+                            continue
+                        if ex[key]:
+                            ex[key] = ex[key].replace('Z', '')
+                            ex[key + 'Formatted'] = arrow.get(ex[key], self.inputDateFormat).format(self.outputDateFormat)
+                        else:
+                            ex[key + 'Formatted'] = 'None'
                     return DeferredList([hit_route(self.SURVEY_GET, ex['surveyId']).addCallback(attach, case_identifier, 'survey')])
-
-                def attach_business(ex, case_identifier):
-                    ex = results[case_identifier]['business'] = loads(ex.decode())
-                    ru_ref = dumps({"RU_REF": "{}".format(ex['businessRef'])})
-                    params = "?searchString={}".format(quote(ru_ref))
-                    return DeferredList([hit_route(self.INSTRUMENT_GET, params).addCallback(attach, case_identifier, 'ci')])
 
                 case_id = case['id']
                 business_id = case['caseGroup']['partyId']
                 exercise_id = case['caseGroup']['collectionExerciseId']
                 results[case_id] = {'case': case}
-                #business = hit_route(self.BUSINESS_GET, business_id).addCallback(attach, case_id, 'business')
-                business = hit_route(self.BUSINESS_GET, business_id).addCallback(attach_business, case_id)
+                business = hit_route(self.BUSINESS_GET, business_id).addCallback(attach, case_id, 'business')
                 exercise = hit_route(self.EXERCISE_GET, exercise_id).addCallback(attach_exercise, case_id)
                 dlist += [business, exercise]
             return DeferredList(dlist)
 
-        deferreds = fetch_rows()
+        try:
+            deferreds = fetch_rows()
+        except Exception as e:
+            return make_response(str(e), 500)
+
         #
         #   We arrive back here when all the deferred requests in fetch_rows have completed. (thanks to the
         #   'wait_for' decorator on fetch_rows. At this point each deferred is a tuple of (True|False) and
@@ -218,8 +233,10 @@ class ONSAggregation(object):
         #
         for deferred in deferreds:
             if not deferred[0]:
-                ons_env.logger.info("FAILED: {}".format(deferred[1]))
-                return make_response(deferred[1] if deferred[1] == str else deferred[1].getErrorMessage(), 500)
+                ons_env.logger.error('request failed')
+                result = deferred[1] if deferred[1] == str else deferred[1].getErrorMessage()
+                ons_env.logger.error(result)
+                return make_response(result, 500)
         #
         #   This is the 'gather' stage, it might seem a little counter-intuitive looking a the above test,
         #   but the returning deferreds contain resulting status information and meta-data. As requests have
@@ -233,16 +250,14 @@ class ONSAggregation(object):
         #
         rows = []
         for item in results.values():
-            item_status = self.calculate_case_status(item['case']['caseEvents']).lower()
-            if item_status in status_filter:
-                #if 'collectionInstrumentId' in item['business']:
-                item['case']['collectionInstrumentId'] = item['ci'][0]['id']
-
-                rows.append({
-                    'businessData': item['business'],
-                    'case': item['case'],
-                    'collectionExerciseData': item['exercise'],
-                    'surveyData': item['survey'],
-                    'status': item_status
-                })
+            item_status = self.calculate_case_status(item.get('case', {}).get('caseEvents', '')).lower()
+            if item_status not in status_filter:
+                continue
+            rows.append({
+                'businessData': item.get('business', '*** NO BUSINESS DATA ***'),
+                'case': item.get('case', '*** NO CASE DATA ***'),
+                'collectionExerciseData': item.get('exercise', '*** NO EXERCISE DATA ***'),
+                'surveyData': item.get('survey', '*** NO SURVEY DATA ***'),
+                'status': item_status
+            })
         return make_response(jsonify({'userData': loads(deferreds[0][1].decode()), 'rows': rows}), 200)

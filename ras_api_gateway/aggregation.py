@@ -95,7 +95,7 @@ class ONSAggregation(object):
                     status = 'Complete'
                     break
                 if event['category'] == 'COLLECTION_INSTRUMENT_DOWNLOADED':
-                    status = 'Downloaded'
+                    status = 'In Progress'
                     break
         return status if status else 'Not Started'
 

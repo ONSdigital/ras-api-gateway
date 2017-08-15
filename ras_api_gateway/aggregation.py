@@ -96,7 +96,6 @@ class ONSAggregation(object):
                     break
                 if event['category'] == 'COLLECTION_INSTRUMENT_DOWNLOADED':
                     status = 'In Progress'
-                    break
         return status if status else 'Not Started'
 
     @wait_for(timeout=5)

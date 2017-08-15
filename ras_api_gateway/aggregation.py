@@ -88,18 +88,16 @@ class ONSAggregation(object):
         :param case_events: A list of case events
         :return: A status string in ['Not Started', 'Completed', 'In Progress']
         """
-        status = 'Not Started'
+        status = None
         if case_events:
             for event in case_events:
                 if event['category'] == 'SUCCESSFUL_RESPONSE_UPLOAD':
                     status = 'Complete'
                     break
-            if status == '':
-                for event in case_events:
-                    if event['category'] == 'COLLECTION_INSTRUMENT_DOWNLOADED':
-                        status = 'In progress'
-                        break
-        return status
+                if event['category'] == 'COLLECTION_INSTRUMENT_DOWNLOADED':
+                    status = 'Downloaded'
+                    break
+        return status if status else 'Not Started'
 
     @wait_for(timeout=5)
     def lookup_cases(self, party_id):

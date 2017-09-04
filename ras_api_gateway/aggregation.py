@@ -57,9 +57,10 @@ def hit_route(url, params):
     if params[0] != '?':
         params = '/'+params
 
+    auth = (ons_env.security_user_name, ons_env.security_user_password)
     full_url = '{}{}{}'.format(route.txt, url, params)
     ons_env.logger.info('access "{}"'.format(full_url))
-    return treq.get(full_url).addCallback(status_check).addCallback(treq.content)
+    return treq.get(full_url, auth=auth).addCallback(status_check).addCallback(treq.content)
 
 
 class ONSAggregation(object):

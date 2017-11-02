@@ -28,5 +28,14 @@ are currently loaded from a public CDN and the source for the skin can be found 
 
 The meat of the code is in the ras_api_gateway folder, moving forward the business logic is
 on aggregation.py. There is more refactoring that can be done here but we currently have a
-documented / working pattern with error checking
-.
+documented / working pattern with error checking.
+
+### Running Locally
+
+To run locally from the root of your repository using sqlite (against the 'travis' profile), run:
+
+```bash
+ $ pip install pipenv
+ $ pipenv install --dev
+ $ ONS_ENV=travis pipenv run ./scripts/run.sh
+```

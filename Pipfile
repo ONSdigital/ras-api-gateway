@@ -1,0 +1,34 @@
+[[source]]
+
+name = "pypi"
+verify_ssl = true
+url = "https://pypi.python.org/simple"
+
+
+[requires]
+
+python_version = "3.6"
+
+
+[packages]
+
+ras-common = {git = "https://github.com/ONSdigital/ras-common.git", ref="0.3.0"}
+arrow = "==0.10.0"
+crochet = "==1.6.0"
+cryptography = "==1.9"
+Flask = "==0.12.2"
+Flask-Cors = "==3.0.2"
+Flask-Twisted = "==0.1.2"
+swagger-spec-validator = "==2.1.0"
+treq = "==17.3.1"
+
+
+[dev-packages]
+
+coverage = "*"
+flake8 = "*"
+flake8-mock = "*"
+Flask-Testing = "*"
+pytest = "*"
+pytest-cov = "*"
+tox = "*"

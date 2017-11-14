@@ -4,6 +4,6 @@ MAINTAINER Joseph Walton <joseph.walton@ons.gov.uk>
 WORKDIR /app
 COPY . /app
 EXPOSE 8083
-RUN pip3 install -r requirements.txt --upgrade
+RUN pip install pipenv==8.3.1 && pipenv install --deploy --system
 
-ENTRYPOINT ["python3", "-m", "ras_api_gateway"]
+ENTRYPOINT ["python", "-m", "ras_api_gateway"]

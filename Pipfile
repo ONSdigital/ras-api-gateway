@@ -15,7 +15,7 @@ python_version = "3.6"
 ras-common = {git = "https://github.com/ONSdigital/ras-common.git", ref="0.3.0"}
 arrow = "==0.10.0"
 crochet = "==1.6.0"
-cryptography = "==1.9"
+cryptography = "==3.2"
 Flask = "==0.12.2"
 Flask-Cors = "==3.0.2"
 Flask-Twisted = "==0.1.2"
